@@ -552,6 +552,7 @@
             <button id="btn-hud-reset" class="hud-icon-btn glass-panel" title="Reset/Unflip Buggy (R)">🔄</button>
             <button id="btn-hud-cam" class="hud-icon-btn glass-panel" title="Toggle Camera View (C)">📷</button>
             <button id="btn-hud-sound" class="hud-icon-btn glass-panel" title="Toggle Sound">🔊</button>
+            <button id="btn-hud-tod" class="hud-icon-btn glass-panel" title="Change Time of Day">🌙</button>
         </div>
 
         <div class="hud-group">
@@ -1261,6 +1262,28 @@
             wheels.push({ group: wGroup, tire: tire, isFront: idx < 2 });
         });
 
+        // Neon Underglow System
+        const underglowColor = 0x00cec9;
+        const underglowLight = new THREE.PointLight(underglowColor, 2.5, 6, 1.5);
+        underglowLight.position.set(0, 0.1, 0);
+        buggy.add(underglowLight);
+
+        const underglowGeo = new THREE.PlaneGeometry(2.2, 4.0);
+        const underglowMat = new THREE.MeshBasicMaterial({
+            color: underglowColor,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const underglowMesh = new THREE.Mesh(underglowGeo, underglowMat);
+        underglowMesh.rotation.x = -Math.PI / 2;
+        underglowMesh.position.y = 0.04;
+        buggy.add(underglowMesh);
+        
+        buggy.underglowLight = underglowLight;
+        buggy.underglowMesh = underglowMesh;
+
         buggy.wheels = wheels;
         buggy.bodyColor = bodyColor;
         buggy.bodyMat = bodyMat;
@@ -1269,6 +1292,8 @@
             this.bodyColor = newHex;
             if (this.bodyMat) this.bodyMat.color.setHex(newHex);
             if (this.rimMat) this.rimMat.color.setHex(newHex);
+            if (this.underglowLight) this.underglowLight.color.setHex(newHex);
+            if (this.underglowMesh) this.underglowMesh.material.color.setHex(newHex);
         };
         return buggy;
     }
@@ -2998,6 +3023,36 @@
         const muted = sound.toggleMute();
         document.getElementById('btn-hud-sound').innerText = muted ? '🔇' : '🔊';
     });
+
+    let currentTodIdx = 0;
+    const todPresets = [
+        { icon: "🌙", bg: 0x190e28, fog: 0x190e28, fogDensity: 0.0018, ambient: 0x563870, ambientInt: 1.8, dir: 0xb4b2ff, dirInt: 1.9 },
+        { icon: "🌇", bg: 0x4a1c40, fog: 0x4a1c40, fogDensity: 0.0016, ambient: 0xff7675, ambientInt: 2.0, dir: 0xfdcb6e, dirInt: 2.4 },
+        { icon: "☀️", bg: 0x74b9ff, fog: 0xa0cbf8, fogDensity: 0.0012, ambient: 0xffffff, ambientInt: 1.6, dir: 0xfff9e6, dirInt: 2.6 }
+    ];
+
+    function cycleTimeOfDay() {
+        currentTodIdx = (currentTodIdx + 1) % todPresets.length;
+        const preset = todPresets[currentTodIdx];
+        
+        scene.background.setHex(preset.bg);
+        scene.fog.color.setHex(preset.fog);
+        scene.fog.density = preset.fogDensity;
+        
+        ambientLight.color.setHex(preset.ambient);
+        ambientLight.intensity = preset.ambientInt;
+        
+        sunLight.color.setHex(preset.dir);
+        sunLight.intensity = preset.dirInt;
+
+        const btn = document.getElementById('btn-hud-tod');
+        if (btn) btn.innerText = preset.icon;
+
+        if (sound) sound.playTone(600, 0.1, 'sine', 0.1);
+    }
+
+    document.getElementById('btn-hud-tod').addEventListener('click', cycleTimeOfDay);
+
     document.getElementById('btn-modal-restart').addEventListener('click', () => {
         if (currentMode === 'race') startRaceMode();
         else startCityMode();
@@ -4243,7 +4298,18 @@ function updatePlayer(dt) {
             player.mesh.exhaustPipes.forEach(f => {
                 f.material.opacity = isNitroActive ? 0.9 : 0;
                 f.scale.set(1 + Math.random() * 0.4, isNitroActive ? (1.5 + Math.random() * 0.8) : 0.01, 1 + Math.random() * 0.4);
+                
+                if (isNitroActive) {
+                    const wp = new THREE.Vector3();
+                    f.getWorldPosition(wp);
+                    for (let p = 0; p < 2; p++) {
+                        spawnVoxelCrumbles(wp.x, wp.y, wp.z, 1, 0x00cec9);
+                    }
+                }
             });
+        }
+        if (player.mesh.underglowLight) {
+            player.mesh.underglowLight.intensity = isNitroActive ? 3.5 + Math.random() * 1.5 : 2.5;
         }
 
         // Track Grip Calculation (Asphalt Road vs Off-Track Grass/Dirt)
