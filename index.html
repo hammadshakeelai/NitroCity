@@ -3367,6 +3367,7 @@
         const trackPoints = curve.getPoints(450);
         window.circuitTrackPoints = trackPoints;
         window.circuitTrackWidth = 26;
+        const startPoint = raceWaypoints[0];
 
         const trackWidth = 26; // Generous width for 7-car side-by-side overtakes & drift lines!
         const roadGeo = new THREE.BufferGeometry();
@@ -3463,7 +3464,6 @@
         }
 
         // Grand Checkered Start / Finish Gantry with Stadium Floodlights
-        const startPoint = raceWaypoints[0];
         const gantry = new THREE.Group();
         const postMat = new THREE.MeshStandardMaterial({ color: 0x576574, roughness: 0.6 });
         const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 8.5), postMat); pL.position.set(-trackWidth / 2 - 1.2, 4.25, 0);
