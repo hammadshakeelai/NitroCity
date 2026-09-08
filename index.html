@@ -499,9 +499,13 @@
         <p class="logo-subtitle">Stylized 4x4 Off-Road Playground (Inspired by Bruno Simon's Folio 2025)</p>
 
         <div class="mode-cards-container">
-            <!-- Mode 1: Forest & River Playground -->
+            <!-- Mode 1: Metropolis Open World -->
             <div class="mode-card glass-panel" id="btn-mode-city">
-                <div class="mode-icon">🌲</div>
+                <div class="mode-icon">🏙️</div>
+                <h3>Metropolis Open World</h3>
+                <p>Explore a multi-kilometer city! Drive through the Downtown Skyscraper District, cross the Grand Suspension Bridge, and jump off containers in the Industrial Harbor.</p>
+                <button class="btn" style="width: 100%;">EXPLORE CITY</button>
+            </div>
                 <h3>Forest & River Playground</h3>
                 <p>Blast through a lush pine & autumn forest with a sparkling river, cross wooden bridges, splash through water, launch off massive river ramps, smash destructible crates, and collect 10 golden stars.</p>
                 <button class="btn" style="width: 100%;">EXPLORE FOREST</button>
@@ -607,6 +611,11 @@
 
     <!-- Red Impact Vignette Flash for Heavy Collisions -->
     <div id="impact-flash" style="position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.12s ease-out; box-shadow: inset 0 0 75px rgba(255, 71, 87, 0.85); z-index: 50;"></div>
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 85; background: rgba(20, 10, 26, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); flex-direction: column;">
+        <h1 style="font-size: 64px; font-weight: 900; color: #ffeaa7; letter-spacing: 4px; text-shadow: 0 4px 20px rgba(0,0,0,0.8);">PAUSED</h1>
+        <p style="color: #dfe6e9; margin-top: 10px; font-size: 18px; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">Press 'P' to resume</p>
+    </div>
 
     <!-- Modals -->
     <div id="modal-overlay">
@@ -794,6 +803,25 @@
                 gain.connect(this.ctx.destination);
                 osc.start();
                 osc.stop(now + 0.45);
+            } catch (e) {}
+        }
+
+        playPoliceSiren() {
+            if (!this.initialized || this.isMuted) return;
+            try {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(650, now);
+                osc.frequency.linearRampToValueAtTime(950, now + 0.35);
+                osc.frequency.linearRampToValueAtTime(650, now + 0.7);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.7);
             } catch (e) {}
         }
 
@@ -1015,11 +1043,12 @@
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.5, 1000);
     camera.position.set(16, 12, 16);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 820;
+    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.4 : 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = isMobile ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
 
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -1032,8 +1061,9 @@
     const sunLight = new THREE.DirectionalLight(0xffe2ad, 1.4);
     sunLight.position.set(70, 60, 45);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
+    const shadowRes = isMobile ? 1024 : 2048;
+    sunLight.shadow.mapSize.width = shadowRes;
+    sunLight.shadow.mapSize.height = shadowRes;
     sunLight.shadow.camera.near = 1;
     sunLight.shadow.camera.far = 350;
     const shadowSize = 140;
@@ -1585,7 +1615,7 @@
             blade.position.set((Math.random() - 0.5) * 0.6, 0, (Math.random() - 0.5) * 0.6);
             blade.scale.set(1 + Math.random() * 0.5, 0.7 + Math.random() * 0.8, 1 + Math.random() * 0.5);
             blade.rotation.set((Math.random() - 0.5) * 0.35, Math.random() * Math.PI, (Math.random() - 0.5) * 0.35);
-            blade.castShadow = true;
+            blade.castShadow = false;
             tuft.add(blade);
         }
         tuft.position.set(x, 0, z);
@@ -2302,6 +2332,7 @@
 
     // Collision Impact Effect on Player
     function triggerPlayerImpact(severity = 0.5) {
+    if (severity > 0.8 && currentMode === "city") sysPolice.addHeat(1);
         screenShake = Math.max(screenShake, severity * 0.42);
         const flash = document.getElementById('impact-flash');
         if (flash) {
@@ -2647,6 +2678,38 @@
                     ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
                     ctx.fill();
                 });
+                
+                // Crazy Taxi Target Blip
+                if (window.sysTaxi && (sysTaxi.pickupZone || sysTaxi.dropZone)) {
+                    const zone = sysTaxi.activeJob ? sysTaxi.dropZone : sysTaxi.pickupZone;
+                    if (zone) {
+                        const pulse = Math.abs(Math.sin(Date.now() * 0.005)) * 2;
+                        const p = toRadar(zone.position.x, zone.position.z);
+                        
+                        const dist = Math.hypot(p.x - cx, p.y - cy);
+                        let finalP = p;
+                        if (dist > radius - 8) {
+                            const angle = Math.atan2(p.y - cy, p.x - cx);
+                            finalP = {
+                                x: cx + Math.cos(angle) * (radius - 8),
+                                y: cy + Math.sin(angle) * (radius - 8)
+                            };
+                        }
+                        
+                        ctx.fillStyle = sysTaxi.activeJob ? '#ffd700' : '#00ff88';
+                        ctx.beginPath();
+                        ctx.arc(finalP.x, finalP.y, 4 + pulse, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(sysTaxi.activeJob ? 'DROP' : 'TAXI', finalP.x, finalP.y - 8);
+                    }
+                }
             } else if (currentMode === 'race' && raceWaypoints && raceWaypoints.length > 0) {
                 // Race Track Ribbon Loop
                 ctx.strokeStyle = 'rgba(255, 118, 117, 0.75)';
@@ -2759,6 +2822,7 @@
     // GAME STATE & ACTIVE ARRAYS
     // ==========================================================================
     let currentMode = null;
+    let isPaused = false;
     let activeWorldObjects = [];
     let activeColliders = [];
     let interactiveCrates = [];
@@ -2853,6 +2917,11 @@
         if (e.code === 'KeyC') toggleCameraMode();
         if (e.code === 'KeyR') resetPlayerVehicle();
         if (e.code === 'Escape') returnToMenu();
+        if (e.code === 'KeyP') {
+            isPaused = !isPaused;
+            const overlay = document.getElementById('pause-overlay');
+            if (overlay) overlay.style.display = isPaused ? 'flex' : 'none';
+        }
     });
 
     window.addEventListener('keyup', (e) => {
@@ -2949,6 +3018,10 @@
         aiCars = [];
         activeDebris.forEach(d => scene.remove(d));
         activeDebris.length = 0;
+        
+        if (typeof sysTraffic !== 'undefined') sysTraffic.cleanup();
+        if (typeof sysTaxi !== 'undefined') sysTaxi.cleanup();
+        if (typeof sysPolice !== 'undefined') sysPolice.cleanup();
     }
 
     // ==========================================================================
@@ -2956,373 +3029,352 @@
     // ==========================================================================
     function buildForestRiverPlayground() {
         clearWorld();
-        scene.background = new THREE.Color(0x351a42);
-        scene.fog = new THREE.FogExp2(0x351a42, 0.0055);
+        scene.background = new THREE.Color(0x190e28);
+        scene.fog = new THREE.FogExp2(0x190e28, 0.0018);
 
-        // Ground: Lush Meadow Green
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x43a047, roughness: 0.85 });
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), groundMat);
+        // Ground: Asphalt City Foundation
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x14121a, roughness: 0.9 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
         activeWorldObjects.push(ground);
 
-        // Winding River Channel: Sparkling Turquoise
-        const riverMat = new THREE.MeshStandardMaterial({ color: 0x00cec9, roughness: 0.12, metalness: 0.45 });
-        const riverCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-18, 0.04, -200),
-            new THREE.Vector3(-24, 0.04, -90),
-            new THREE.Vector3(-14, 0.04, 0),
-            new THREE.Vector3(-28, 0.04, 90),
-            new THREE.Vector3(-18, 0.04, 200)
-        ]);
-        const riverPts = riverCurve.getPoints(140);
-        const riverGeo = new THREE.BufferGeometry();
-        const rVerts = [];
-        const riverWidth = 18;
+        // Grid of Main Multi-Lane Avenues
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x22242b, roughness: 0.65 });
+        const roadGroup = new THREE.Group();
+        const avenueWidth = 56;
+        const mainAvenueGeo = new THREE.PlaneGeometry(avenueWidth, 3600);
+        
+        // North-South Main Boulevard
+        const road1 = new THREE.Mesh(mainAvenueGeo, roadMat);
+        road1.rotation.x = -Math.PI / 2;
+        road1.position.set(0, 0.08, 0);
+        road1.receiveShadow = true;
+        roadGroup.add(road1);
+        
+        // East-West Grand Avenue
+        const road2 = new THREE.Mesh(mainAvenueGeo, roadMat);
+        road2.rotation.x = -Math.PI / 2;
+        road2.rotation.z = Math.PI / 2;
+        road2.position.set(0, 0.08, 0);
+        road2.receiveShadow = true;
+        roadGroup.add(road2);
 
-        for (let i = 0; i < riverPts.length; i++) {
-            const p = riverPts[i];
-            const tangent = (i < riverPts.length - 1) ? new THREE.Vector3().subVectors(riverPts[i+1], p).normalize() : new THREE.Vector3(0,0,1);
-            const norm = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
-            rVerts.push(p.x - norm.x * riverWidth / 2, 0.04, p.z - norm.z * riverWidth / 2);
-            rVerts.push(p.x + norm.x * riverWidth / 2, 0.04, p.z + norm.z * riverWidth / 2);
+        // Harbor Access Expressway to the East
+        const roadHarbor = new THREE.Mesh(new THREE.PlaneGeometry(36, 1200), roadMat);
+        roadHarbor.rotation.x = -Math.PI / 2;
+        roadHarbor.rotation.z = Math.PI / 2;
+        roadHarbor.position.set(600, 0.08, 0);
+        roadHarbor.receiveShadow = true;
+        roadGroup.add(roadHarbor);
+
+        // Dashed White Centerlines
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        for (let lz = -1400; lz <= 1400; lz += 24) {
+            const dash = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 12), lineMat);
+            dash.rotation.x = -Math.PI / 2;
+            dash.position.set(0, 0.12, lz);
+            roadGroup.add(dash);
         }
-        const rIdx = [];
-        for (let i = 0; i < riverPts.length - 1; i++) {
-            const i1 = i * 2, i2 = i * 2 + 1, i3 = (i + 1) * 2, i4 = (i + 1) * 2 + 1;
-            rIdx.push(i1, i2, i3, i2, i4, i3);
+        for (let lx = -1400; lx <= 1400; lx += 24) {
+            const dash = new THREE.Mesh(new THREE.PlaneGeometry(12, 1.2), lineMat);
+            dash.rotation.x = -Math.PI / 2;
+            dash.position.set(lx, 0.12, 0);
+            roadGroup.add(dash);
         }
-        riverGeo.setIndex(rIdx);
-        riverGeo.setAttribute('position', new THREE.Float32BufferAttribute(rVerts, 3));
-        riverGeo.computeVertexNormals();
+        
+        scene.add(roadGroup);
+        activeWorldObjects.push(roadGroup);
 
-        const riverMesh = new THREE.Mesh(riverGeo, riverMat);
-        riverMesh.receiveShadow = true;
-        scene.add(riverMesh);
-        activeWorldObjects.push(riverMesh);
-
-        // Bridges across River
-        const mainBridge = createWoodBridge(-14, 0, 22, 9.0);
-        const northBridge = createWoodBridge(-24, 85, 22, 8.5);
-        [mainBridge, northBridge].forEach(b => {
-            scene.add(b);
-            activeWorldObjects.push(b);
-        });
-
-        // Wooden Fishing Pier / Dock Extending Over Water
-        const pier = createRiverDock(-5, -45, Math.PI / 2);
-        scene.add(pier);
-        activeWorldObjects.push(pier);
-
-        // Water Splash Ford
-        const fordRamp = new THREE.Mesh(new THREE.PlaneGeometry(14, 24), new THREE.MeshStandardMaterial({ color: 0x8b572a, roughness: 0.9 }));
-        fordRamp.rotation.x = -Math.PI / 2;
-        fordRamp.position.set(-23, 0.05, -75);
-        scene.add(fordRamp);
-        activeWorldObjects.push(fordRamp);
-
-        // Terracotta Forest Trail Network
-        const pathMat = new THREE.MeshStandardMaterial({ color: 0xd97757, roughness: 0.85 });
-        const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(11, 280), pathMat);
-        mainRoad.rotation.x = -Math.PI / 2;
-        mainRoad.position.set(0, 0.03, 0);
-        mainRoad.receiveShadow = true;
-        scene.add(mainRoad);
-        activeWorldObjects.push(mainRoad);
-
-        const crossRoad = new THREE.Mesh(new THREE.PlaneGeometry(160, 11), pathMat);
-        crossRoad.rotation.x = -Math.PI / 2;
-        crossRoad.position.set(0, 0.03, 0);
-        crossRoad.receiveShadow = true;
-        scene.add(crossRoad);
-        activeWorldObjects.push(crossRoad);
-
-        // Cadet Bootcamp Trail Branch
-        const cadetRoad = new THREE.Mesh(new THREE.PlaneGeometry(10, 90), pathMat);
-        cadetRoad.rotation.x = -Math.PI / 2;
-        cadetRoad.position.set(45, 0.03, -15);
-        cadetRoad.receiveShadow = true;
-        scene.add(cadetRoad);
-        activeWorldObjects.push(cadetRoad);
-
-        // 260+ Diverse Trees with Real Solid Trunk Collisions
-        for (let t = 0; t < 260; t++) {
-            const tx = (Math.random() - 0.5) * 280;
-            const tz = (Math.random() - 0.5) * 280;
-            const onRoad = (Math.abs(tx) < 7.5 || Math.abs(tz) < 7.5);
-            const onRiver = Math.abs(tx - (-18)) < 14;
-            const inCadetBase = (tx > 30 && tx < 92 && tz > -65 && tz < 55);
-
-            if (!onRoad && !onRiver && !inCadetBase) {
-                const scale = 0.8 + Math.random() * 0.65;
-                const r = Math.random();
-                const tree = (r < 0.35) ? createPineTree(tx, tz, scale) :
-                             (r < 0.60) ? createAutumnOakTree(tx, tz, scale) :
-                             (r < 0.82) ? createGoldenBirchTree(tx, tz, scale) :
-                             createBlossomTree(tx, tz, scale);
-                registerTree(tree, tx, tz, scale);
-            }
+        // Streetlights along the Avenues
+        for (let lz = -350; lz <= 350; lz += 70) {
+            [-30, 30].forEach(lx => {
+                const lamp = createGlowingLantern(lx, lz);
+                scene.add(lamp);
+                activeWorldObjects.push(lamp);
+            });
+        }
+        for (let lx = -350; lx <= 350; lx += 70) {
+            [-30, 30].forEach(lz => {
+                const lamp = createGlowingLantern(lx, lz);
+                scene.add(lamp);
+                activeWorldObjects.push(lamp);
+            });
         }
 
-        // 130+ Wildflower Patches
-        const flowerColors = [0xff4757, 0xfed330, 0xa55eea, 0xff9f43, 0xffffff];
-        for (let f = 0; f < 130; f++) {
-            const fx = (Math.random() - 0.5) * 260;
-            const fz = (Math.random() - 0.5) * 260;
-            if ((Math.abs(fx) > 6.5 || Math.abs(fz) > 6.5) && Math.abs(fx - (-18)) > 11) {
-                const col = flowerColors[Math.floor(Math.random() * flowerColors.length)];
-                const patch = createFlowerPatch(fx, fz, col);
-                scene.add(patch);
-                activeWorldObjects.push(patch);
-            }
-        }
-
-        // 50+ Leafy Bushes
-        for (let b = 0; b < 50; b++) {
-            const bx = (Math.random() - 0.5) * 240;
-            const bz = (Math.random() - 0.5) * 240;
-            if ((Math.abs(bx) > 6.8 || Math.abs(bz) > 6.8) && Math.abs(bx - (-18)) > 11) {
-                const bush = createBush(bx, bz, 0.8 + Math.random() * 0.6);
-                scene.add(bush);
-                activeWorldObjects.push(bush);
-            }
-        }
-
-        // Stepped Basalt Rock Formations
-        const rockLocations = [
-            [-26, -14, 3.8], [-24, -12, 4.8], [-27, -10, 2.9],
-            [-26, 12, 3.5], [-24, 14, 4.5], [-25, 16, 2.6],
-            [-3, -14, 3.2], [-2, -16, 4.2], [-4, -18, 2.4],
-            [32, -30, 4.5], [34, -28, 5.5], [36, -31, 3.8],
-            [15, 65, 4.2], [18, 68, 5.0], [13, 70, 3.5]
-        ];
-        rockLocations.forEach(r => {
-            const rock = createBasaltColumn(r[0], r[1], r[2]);
-            scene.add(rock);
-            activeWorldObjects.push(rock);
-            activeColliders.push(rock);
-        });
-
-        // Glowing Trail Lanterns
-        const lanternSpots = [
-            [-14, 0, -11], [-14, 0, 11], [9, 0, -11], [9, 0, 11],
-            [-28, 0, -6], [-28, 0, 6], [-16, 0, -6], [-16, 0, 6],
-            [0, 0, -50], [0, 0, 50], [45, 0, -8], [45, 0, 8],
-            [-22, 0, -85], [-22, 0, -55], [0, 0, -90], [0, 0, 90]
-        ];
-        lanternSpots.forEach(s => {
-            const l = createGlowingLantern(s[0], s[2]);
-            scene.add(l);
-            activeWorldObjects.push(l);
-        });
-
-        // Breakable Wooden Fences
-        const fences = [
-            createBreakableFence(7, -6, Math.PI / 2),
-            createBreakableFence(7, 6, Math.PI / 2),
-            createBreakableFence(-7, -25, 0),
-            createBreakableFence(7, -25, 0),
-            createBreakableFence(-7, 25, 0),
-            createBreakableFence(7, 25, 0)
-        ];
-        fences.forEach(f => {
-            scene.add(f);
-            activeWorldObjects.push(f);
-            destructibleProps.push(f);
-        });
-
-        // Traffic Cones
-        for (let c = 0; c < 12; c++) {
-            const cone = createTrafficCone(12 + (c % 2) * 1.6, -18 + Math.floor(c / 2) * 2.5);
-            scene.add(cone);
-            activeWorldObjects.push(cone);
-            destructibleProps.push(cone);
-        }
-
-        // Directional Wooden Signposts
-        const signs = [
-            createSignPost(7, -3, 0),
-            createSignPost(-8, -3, Math.PI),
-            createSignPost(36, -8, -Math.PI / 2)
-        ];
-        signs.forEach(s => {
-            scene.add(s);
-            activeWorldObjects.push(s);
-        });
-
-        // ======================================================================
-        // CADET BOOTCAMP & MILITARY COMPOUND
-        // ======================================================================
-        // 1. Cadet Lookout Watchtowers with Searchlights
-        const tower1 = createCadetWatchtower(44, -55);
-        const tower2 = createCadetWatchtower(86, -20);
-        const tower3 = createCadetWatchtower(55, 42);
-        [tower1, tower2, tower3].forEach(tw => {
-            scene.add(tw);
-            activeWorldObjects.push(tw);
-        });
-
-        // 2. Military Barracks Ridge Tents
-        const tents = [
-            createCadetTent(60, -48, 0),
-            createCadetTent(72, -48, 0),
-            createCadetTent(84, -48, 0),
-            createCadetTent(72, -34, Math.PI)
-        ];
-        tents.forEach(t => {
-            scene.add(t);
-            activeWorldObjects.push(t);
-        });
-
-        // 3. Campfire & Flagpole
-        const campfire = createCampfire(60, -34);
-        const flagpole = createFlagPole(52, -48);
-        scene.add(campfire, flagpole);
-        activeWorldObjects.push(campfire, flagpole);
-
-        // 4. Cadet Obstacle Course: Slalom Tire Stacks (Destructible!)
-        const tirePositions = [
-            [40, -18], [50, -8], [40, 2], [52, 12], [42, 22], [54, 32],
-            [68, -12], [68, 6], [78, -12], [78, 6]
-        ];
-        tirePositions.forEach(tp => {
-            const stack = createTireStack(tp[0], tp[1], 3);
-            scene.add(stack);
-            activeWorldObjects.push(stack);
-            destructibleProps.push(stack);
-        });
-
-        // 5. Cadet Hurdle Barricades & Sandbag Defensive Bunkers
-        const cadetBarricades = [
-            createCadetBarricade(38, -32, 0),
-            createCadetBarricade(54, -22, Math.PI / 4),
-            createCadetBarricade(60, 20, -Math.PI / 4),
-            createCadetBarricade(46, 38, 0)
-        ];
-        cadetBarricades.forEach(cb => {
-            scene.add(cb);
-            activeWorldObjects.push(cb);
-            destructibleProps.push(cb);
-        });
-
-        const sandbags = [
-            createSandbagBunker(46, -42, 0),
-            createSandbagBunker(76, -24, Math.PI / 2),
-            createSandbagBunker(50, 28, 0)
-        ];
-        sandbags.forEach(sb => {
-            scene.add(sb);
-            activeWorldObjects.push(sb);
-            destructibleProps.push(sb);
-        });
-
-        // 6. Explosive Fuel & TNT Barrels (Epic fiery voxel explosion on hit!)
-        const explosiveBarrels = [
-            createExplosiveBarrel(62, 0, -20, 0xe74c3c),
-            createExplosiveBarrel(64, 0, -20, 0xf1c40f),
-            createExplosiveBarrel(63, 1.4, -20, 0xe74c3c),
-            createExplosiveBarrel(76, 0, 18, 0xe74c3c),
-            createExplosiveBarrel(78, 0, 18, 0xf1c40f)
-        ];
-        explosiveBarrels.forEach(eb => {
-            scene.add(eb);
-            activeWorldObjects.push(eb);
-            destructibleProps.push(eb);
-        });
-
-        // 7. Cadet Assault Launch Ramp
-        const assaultRamp = createStuntRamp(48, -2, Math.PI);
-        scene.add(assaultRamp);
-        activeWorldObjects.push(assaultRamp);
-        activeColliders.push(assaultRamp);
-
-        // ======================================================================
-        // STUNT ARENA & SPEED BOOSTERS
-        // ======================================================================
-        // Mega Stunt Ramps
-        const riverJumpRamp = createStuntRamp(-34, -40, Math.PI / 2); // 45m Mega jump over the river!
-        const ramp1 = createStuntRamp(0, -45, 0);
-        const ramp2 = createStuntRamp(0, 45, Math.PI);
-        const ramp3 = createStuntRamp(45, 0, -Math.PI / 2);
-        [riverJumpRamp, ramp1, ramp2, ramp3].forEach(r => {
-            scene.add(r);
-            activeWorldObjects.push(r);
-            activeColliders.push(r);
-        });
-
-        // Neon Speed Boost Pads on Road Network
-        const boostP1 = createBoostPad(0, -20, 0);
-        const boostP2 = createBoostPad(0, 20, Math.PI);
-        const boostP3 = createBoostPad(25, 0, -Math.PI / 2);
-        [boostP1, boostP2, boostP3].forEach(bp => {
-            scene.add(bp);
-            activeWorldObjects.push(bp);
-            boostPads.push(bp);
-        });
-
-        // Floating Golden Stunt Rings in Mid-Air
-        const ring1 = createStuntRing(-20, 5.6, -40); // Over River Jump!
-        const ring2 = createStuntRing(0, 5.2, -36);   // Over Ramp 1!
-        const ring3 = createStuntRing(48, 5.2, 8);    // Over Cadet Ramp!
-        [ring1, ring2, ring3].forEach(rng => {
-            scene.add(rng);
-            activeWorldObjects.push(rng);
-            stuntRings.push(rng);
-        });
-
-        // Multiple Giant Crate Pyramids
-        const cratePyramidLocs = [
-            [18, 8], [-38, 20], [28, -60]
-        ];
-        cratePyramidLocs.forEach(cLoc => {
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < (3 - row); col++) {
-                    const crate = createDestructibleCrate(cLoc[0] + col * 1.6, row * 1.4, cLoc[1], 1.4, (row + col) % 2 === 0 ? 0xffbe76 : 0xe17055);
-                    scene.add(crate);
-                    activeWorldObjects.push(crate);
-                    interactiveCrates.push(crate);
+        // Downtown Skyscraper District using InstancedMesh
+        const buildingCount = 400;
+        const bGeo = new THREE.BoxGeometry(1, 1, 1);
+        
+        const winCanvas = document.createElement('canvas');
+        winCanvas.width = 512;
+        winCanvas.height = 1024;
+        const wCtx = winCanvas.getContext('2d');
+        wCtx.fillStyle = '#05050a'; // Dark glass
+        wCtx.fillRect(0, 0, 512, 1024);
+        const winColors = ['#00cec9', '#fdcb6e', '#e84393', '#ffffff'];
+        for (let y = 0; y < 1024; y += 32) {
+            for (let x = 0; x < 512; x += 16) {
+                if (Math.random() > 0.65) {
+                    wCtx.fillStyle = winColors[Math.floor(Math.random() * winColors.length)];
+                    wCtx.shadowBlur = 10;
+                    wCtx.shadowColor = wCtx.fillStyle;
+                    wCtx.fillRect(x + 2, y + 4, 12, 24);
+                    wCtx.shadowBlur = 0;
                 }
             }
+        }
+        
+        const winTex = new THREE.CanvasTexture(winCanvas);
+        winTex.wrapS = THREE.RepeatWrapping;
+        winTex.wrapT = THREE.RepeatWrapping;
+        winTex.repeat.set(2, 6);
+        
+        const bMat = new THREE.MeshStandardMaterial({ 
+            color: 0x181828,
+            map: winTex,
+            emissiveMap: winTex,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.8,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        
+        const bMesh = new THREE.InstancedMesh(bGeo, bMat, buildingCount);
+        bMesh.castShadow = true;
+        bMesh.receiveShadow = true;
+        
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+        let bIdx = 0;
+        
+        for (let blockX = -3; blockX <= 3; blockX++) {
+            for (let blockZ = -3; blockZ <= 3; blockZ++) {
+                if (blockX === 0 || blockZ === 0) continue; // Keep avenues open
+                
+                for (let i = 0; i < 10; i++) {
+                    const bx = blockX * 110 + (Math.random() * 60 - 30);
+                    const bz = blockZ * 110 + (Math.random() * 60 - 30);
+                    const bw = 16 + Math.random() * 18;
+                    const bd = 16 + Math.random() * 18;
+                    const bh = 55 + Math.random() * 160;
+                    
+                    dummy.position.set(bx, bh / 2, bz);
+                    dummy.scale.set(bw, bh, bd);
+                    dummy.updateMatrix();
+                    bMesh.setMatrixAt(bIdx, dummy.matrix);
+                    
+                    // Cyberpunk skyscraper hues (cyan, purple, magenta, gold)
+                    const hues = [0.55, 0.75, 0.85, 0.08, 0.6];
+                    color.setHSL(hues[Math.floor(Math.random() * hues.length)], 0.6, 0.45);
+                    bMesh.setColorAt(bIdx, color);
+                    bIdx++;
+                    if (bIdx >= buildingCount) break;
+                }
+                if (bIdx >= buildingCount) break;
+            }
+            if (bIdx >= buildingCount) break;
+        }
+        
+        bMesh.instanceMatrix.needsUpdate = true;
+        if (bMesh.instanceColor) bMesh.instanceColor.needsUpdate = true;
+        scene.add(bMesh);
+        activeWorldObjects.push(bMesh);
+
+        // Neon Glow accents (windows and storefront banners)
+        const glowGeo = new THREE.BoxGeometry(1, 1, 1);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0x00cec9 });
+        const glowMesh = new THREE.InstancedMesh(glowGeo, glowMat, 220);
+        let gIdx = 0;
+        for (let i = 0; i < 220; i++) {
+            const gx = (Math.random() > 0.5 ? 1 : -1) * (45 + Math.random() * 260);
+            const gz = (Math.random() > 0.5 ? 1 : -1) * (45 + Math.random() * 260);
+            dummy.position.set(gx, 12 + Math.random() * 110, gz);
+            dummy.scale.set(16, 2.5, 16.2);
+            dummy.updateMatrix();
+            glowMesh.setMatrixAt(gIdx, dummy.matrix);
+            glowMesh.setColorAt(gIdx, new THREE.Color().setHSL(Math.random(), 1.0, 0.55));
+            gIdx++;
+        }
+        glowMesh.instanceMatrix.needsUpdate = true;
+        if (glowMesh.instanceColor) glowMesh.instanceColor.needsUpdate = true;
+        scene.add(glowMesh);
+        activeWorldObjects.push(glowMesh);
+
+        // Sparkling River Canal
+        const riverMat = new THREE.MeshStandardMaterial({ color: 0x00cec9, roughness: 0.12, metalness: 0.5, transparent: true, opacity: 0.92 });
+        const river = new THREE.Mesh(new THREE.PlaneGeometry(900, 160), riverMat);
+        river.rotation.x = -Math.PI / 2;
+        river.position.set(600, 0.06, 0);
+        scene.add(river);
+        activeWorldObjects.push(river);
+
+        // Grand Cable Suspension Bridge spanning across the Canal
+        const bridgeGroup = new THREE.Group();
+        const deckMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.8 });
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(180, 2, 38), deckMat);
+        deck.position.set(600, 15, 0);
+        deck.receiveShadow = true;
+        deck.castShadow = true;
+        bridgeGroup.add(deck);
+
+        // Ramps connecting Bridge to Ground
+        const rampGeo = new THREE.BoxGeometry(65, 2, 38);
+        const ramp1 = new THREE.Mesh(rampGeo, deckMat);
+        ramp1.position.set(490, 7.5, 0);
+        ramp1.rotation.z = Math.PI / 12;
+        bridgeGroup.add(ramp1);
+        
+        const ramp2 = new THREE.Mesh(rampGeo, deckMat);
+        ramp2.position.set(710, 7.5, 0);
+        ramp2.rotation.z = -Math.PI / 12;
+        bridgeGroup.add(ramp2);
+
+        // Suspension Bridge Support Towers
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0xd63031, roughness: 0.6 }); // Crimson Red
+        [-45, 45].forEach(px => {
+            [-16, 16].forEach(pz => {
+                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 3.2, 65, 8), towerMat);
+                pillar.position.set(600 + px, 32, pz);
+                pillar.castShadow = true;
+                bridgeGroup.add(pillar);
+            });
         });
 
-        // Autumn Grass Tufts
-        for (let g = 0; g < 380; g++) {
-            const gx = (Math.random() - 0.5) * 220;
-            const gz = (Math.random() - 0.5) * 220;
-            if ((Math.abs(gx) > 5.2 || Math.abs(gz) > 5.2) && Math.abs(gx - (-18)) > 9) {
-                const tuft = createGrassTuft(gx, gz);
-                scene.add(tuft);
-                activeWorldObjects.push(tuft);
+        // Golden Stay Cables
+        const cableMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, emissive: 0xe67e22, emissiveIntensity: 0.3 });
+        [-16, 16].forEach(pz => {
+            const c1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 95), cableMat);
+            c1.position.set(600 - 22, 32, pz);
+            c1.rotation.z = -Math.PI / 4;
+            bridgeGroup.add(c1);
+            
+            const c2 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 95), cableMat);
+            c2.position.set(600 + 22, 32, pz);
+            c2.rotation.z = Math.PI / 4;
+            bridgeGroup.add(c2);
+        });
+
+        scene.add(bridgeGroup);
+        activeWorldObjects.push(bridgeGroup);
+
+        // Industrial Cargo Harbor
+        const harborX = 600;
+        const harborZ = 320;
+        
+        const harborMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.85 });
+        const harborBase = new THREE.Mesh(new THREE.PlaneGeometry(420, 420), harborMat);
+        harborBase.rotation.x = -Math.PI / 2;
+        harborBase.position.set(harborX, 0.12, harborZ);
+        scene.add(harborBase);
+        activeWorldObjects.push(harborBase);
+
+        // Instanced Colorful Shipping Containers
+        const cGeo = new THREE.BoxGeometry(7, 6.5, 16);
+        const cMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.35 });
+        const cMesh = new THREE.InstancedMesh(cGeo, cMat, 150);
+        cMesh.castShadow = true;
+        cMesh.receiveShadow = true;
+        
+        let cIdx = 0;
+        for (let i = 0; i < 30; i++) {
+            const stackX = harborX - 160 + Math.random() * 320;
+            const stackZ = harborZ - 160 + Math.random() * 320;
+            const h = 1 + Math.floor(Math.random() * 4);
+            const rotY = Math.random() > 0.5 ? 0 : Math.PI / 2;
+            
+            for (let y = 0; y < h; y++) {
+                dummy.position.set(stackX, 3.25 + y * 6.5, stackZ);
+                dummy.rotation.set(0, rotY, 0);
+                dummy.scale.set(1, 1, 1);
+                dummy.updateMatrix();
+                cMesh.setMatrixAt(cIdx, dummy.matrix);
+                
+                const cColors = [0xc0392b, 0x2980b9, 0x27ae60, 0xe67e22, 0xf39c12, 0x8e44ad];
+                cMesh.setColorAt(cIdx, new THREE.Color(cColors[Math.floor(Math.random() * cColors.length)]));
+                
+                cIdx++;
+                if (cIdx >= 150) break;
             }
+            if (cIdx >= 150) break;
+        }
+        cMesh.instanceMatrix.needsUpdate = true;
+        if (cMesh.instanceColor) cMesh.instanceColor.needsUpdate = true;
+        scene.add(cMesh);
+        activeWorldObjects.push(cMesh);
+
+        // Stunt Ramps in Harbor & City
+        const ramps = [
+            createStuntRamp(0, -180, 0),
+            createStuntRamp(0, 180, Math.PI),
+            createStuntRamp(harborX - 80, harborZ, -Math.PI / 4),
+            createStuntRamp(harborX + 80, harborZ + 60, Math.PI / 3)
+        ];
+        ramps.forEach(r => {
+            scene.add(r);
+            activeColliders.push(r);
+            activeWorldObjects.push(r);
+        });
+
+        // Stunt Rings
+        const rings = [
+            createStuntRing(0, 14, -220),
+            createStuntRing(0, 14, 220),
+            createStuntRing(600, 22, 0), // Atop suspension bridge!
+            createStuntRing(harborX - 50, 16, harborZ)
+        ];
+        rings.forEach(rng => {
+            scene.add(rng);
+            stuntRings.push(rng);
+            activeWorldObjects.push(rng);
+        });
+
+        // 10 Collectible Golden Stars
+        const starLocations = [
+            [0, 2.5, -90], [0, 2.5, 90], [-90, 2.5, 0], [90, 2.5, 0],
+            [600, 18, 0], [490, 10, 0], [710, 10, 0], // Bridge stars
+            [harborX - 80, 4, harborZ - 50], [harborX + 60, 12, harborZ + 40], [harborX, 4, harborZ + 120] // Harbor stars
+        ];
+        starLocations.forEach(([sx, sy, sz]) => {
+            const star = createCollectibleStar(sx, sy, sz);
+            scene.add(star);
+            collectibleStars.push(star);
+            activeWorldObjects.push(star);
+        });
+
+        // Destructible Toy Crates
+        for (let c = 0; c < 28; c++) {
+            const side = (c % 2 === 0 ? 30 : -30);
+            const cz = -320 + c * 23;
+            const crate = createDestructibleCrate(side + (Math.random() - 0.5) * 3, 0.7, cz, 1.4, 0xffbe76);
+            scene.add(crate);
+            interactiveCrates.push(crate);
+            activeWorldObjects.push(crate);
         }
 
-        // 10 Golden Collectible Stars
-        const starLocations = [
-            [0, 3.2, 0],         // Central trail intersection
-            [-14, 2.6, 0],       // Over main wooden bridge
-            [-22, 1.2, -75],     // River water splash
-            [-20, 5.6, -40],     // Air above river jump!
-            [0, 4.5, -45],       // Top of ramp 1
-            [0, 4.5, 45],        // Top of ramp 2
-            [48, 5.2, 8],        // Above Cadet Assault Jump!
-            [44, 8.8, -55],      // High on Cadet Watchtower!
-            [60, 2.2, -34],      // Beside Cadet Campfire!
-            [-5, 2.4, -45]       // On wooden river dock!
-        ];
+        // Cyberpunk Atmospheric Lighting
+        const ambientLight = new THREE.AmbientLight(0x563870, 1.8);
+        scene.add(ambientLight);
+        activeWorldObjects.push(ambientLight);
 
-        collectedStarCount = 0;
-        smashedPropCount = 0;
-        starLocations.forEach(pos => {
-            const s = createCollectibleStar(pos[0], pos[1], pos[2]);
-            scene.add(s);
-            activeWorldObjects.push(s);
-            collectibleStars.push(s);
-        });
-        updateStarsUI();
-        updateSmashedUI();
+        const moonLight = new THREE.DirectionalLight(0xb4b2ff, 1.9);
+        moonLight.position.set(120, 220, -120);
+        moonLight.castShadow = true;
+        moonLight.shadow.camera.left = -450;
+        moonLight.shadow.camera.right = 450;
+        moonLight.shadow.camera.top = 450;
+        moonLight.shadow.camera.bottom = -450;
+        moonLight.shadow.camera.far = 1000;
+        moonLight.shadow.mapSize.width = 2048;
+        moonLight.shadow.mapSize.height = 2048;
+        scene.add(moonLight);
+        activeWorldObjects.push(moonLight);
 
-        player.reset(-4.5, 0, 4.0, -Math.PI * 0.3);
+        // Reset player at city center
+        if (typeof player !== 'undefined' && player.reset) {
+            player.reset(0, 0.6, 0, 0);
+        }
     }
 
     // ==========================================================================
@@ -3656,6 +3708,9 @@
         sound.init();
         bgm.start();
         buildForestRiverPlayground();
+    sysTraffic.init();
+    sysTaxi.init();
+    sysPolice.init();
     }
 
     function startRaceMode() {
@@ -3770,17 +3825,415 @@
     // ==========================================================================
     let lastTime = performance.now();
 
-    function updatePlayer(dt) {
+    
+// ==========================================
+// METROPOLIS OPEN WORLD SYSTEMS (TRAFFIC, NPC, TAXI, POLICE)
+// ==========================================
+
+// -- Models --
+function createCivilianCar(type) {
+    const car = new THREE.Group();
+    let bodyColor = 0x34495e;
+    if (type === 'taxi') bodyColor = 0xf1c40f;
+    if (type === 'van') bodyColor = 0xffffff;
+    if (type === 'police') bodyColor = 0x000000;
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.4 });
+    const bodyGeo = new THREE.BoxGeometry(1.6, 0.8, 3.2);
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.5;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    car.add(body);
+    
+    const roofGeo = new THREE.BoxGeometry(1.4, 0.6, 1.8);
+    let roofColor = type === 'police' ? 0xffffff : bodyColor;
+    const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4 });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 1.2, -0.2);
+    roof.castShadow = true;
+    car.add(roof);
+
+    const hlGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8);
+    hlGeo.rotateX(Math.PI / 2);
+    const hlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 2 });
+    const hl1 = new THREE.Mesh(hlGeo, hlMat);
+    hl1.position.set(-0.5, 0.5, -1.65);
+    const hl2 = new THREE.Mesh(hlGeo, hlMat);
+    hl2.position.set(0.5, 0.5, -1.65);
+    car.add(hl1, hl2);
+
+    if (type === 'police') {
+        const sirenLeftGeo = new THREE.BoxGeometry(0.35, 0.1, 0.3);
+        const sirenRightGeo = new THREE.BoxGeometry(0.35, 0.1, 0.3);
+        const sirenMatL = new THREE.MeshStandardMaterial({ color: 0xff0033, emissive: 0xff0033, emissiveIntensity: 0 });
+        const sirenMatR = new THREE.MeshStandardMaterial({ color: 0x0066ff, emissive: 0x0066ff, emissiveIntensity: 0 });
+        const sirenL = new THREE.Mesh(sirenLeftGeo, sirenMatL);
+        sirenL.position.set(-0.2, 1.55, -0.2);
+        const sirenR = new THREE.Mesh(sirenRightGeo, sirenMatR);
+        sirenR.position.set(0.2, 1.55, -0.2);
+        car.add(sirenL, sirenR);
+        car.sirenL = sirenMatL;
+        car.sirenR = sirenMatR;
+    }
+    
+    return car;
+}
+
+function createPedestrianModel() {
+    const ped = new THREE.Group();
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
+    head.position.y = 1.4;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+    body.position.y = 1.0;
+    ped.add(head, body);
+    return ped;
+}
+
+// -- Classes --
+class TrafficVehicle {
+    constructor(type, x, z) {
+        this.type = type;
+        this.mesh = createCivilianCar(type);
+        this.mesh.position.set(x, 0, z);
+        scene.add(this.mesh);
+        
+        this.x = x; this.y = 0; this.z = z;
+        this.speed = 10 + Math.random() * 5;
+        if (type === 'police') this.speed = 22;
+        this.heading = 0;
+        this.waypointIdx = 0;
+        this.active = true;
+    }
+    update(dt, waypoints, player) {
+        if (!this.active) return;
+        
+        if (this.type === 'police' && sysPolice && sysPolice.stars > 0) {
+            this.mesh.sirenL.emissiveIntensity = (Date.now() % 300 < 150) ? 2 : 0;
+            this.mesh.sirenR.emissiveIntensity = (Date.now() % 300 >= 150) ? 2 : 0;
+            const pVec = new THREE.Vector3(player.x, player.y, player.z);
+            if (this.mesh.position.distanceTo(pVec) < 25) {
+                if (Math.random() < 0.05 && sound.playTone) sound.playTone(800 + Math.random()*200, 0.1, 'square', 0.1);
+            }
+        } else if (this.type === 'police') {
+            this.mesh.sirenL.emissiveIntensity = 0;
+            this.mesh.sirenR.emissiveIntensity = 0;
+        }
+        
+        // Raycast forward to avoid collisions
+        let blocked = false;
+        const forward = new THREE.Vector3(-Math.sin(this.heading), 0, -Math.cos(this.heading));
+        const pVec = new THREE.Vector3(player.x, player.y, player.z);
+        const myVec = this.mesh.position.clone();
+        
+        if (myVec.distanceTo(pVec) < 20) {
+            const dirToPlayer = pVec.clone().sub(myVec).normalize();
+            if (forward.dot(dirToPlayer) > 0.8 && myVec.distanceTo(pVec) < 6) {
+                blocked = true; // Player in front
+            }
+        }
+        
+        if (!blocked) {
+            const target = waypoints[this.waypointIdx];
+            if (!target) return;
+            const dx = target.x - this.x;
+            const dz = target.z - this.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist < 2.0) {
+                this.waypointIdx = (this.waypointIdx + 1) % waypoints.length;
+            } else {
+                const targetHeading = Math.atan2(-dx, -dz);
+                // simplified steering
+                this.heading = targetHeading;
+                this.x -= Math.sin(this.heading) * this.speed * dt;
+                this.z -= Math.cos(this.heading) * this.speed * dt;
+                const ty = target.y !== undefined ? target.y : 0;
+                this.mesh.position.set(this.x, ty, this.z);
+                this.mesh.rotation.y = this.heading;
+            }
+        }
+    }
+}
+
+class PedestrianNPC {
+    constructor(x, z) {
+        this.mesh = createPedestrianModel();
+        this.mesh.position.set(x, 0, z);
+        scene.add(this.mesh);
+        this.x = x; this.z = z;
+        this.speed = 1.5 + Math.random();
+        this.heading = Math.random() * Math.PI * 2;
+    }
+    update(dt) {
+        this.x -= Math.sin(this.heading) * this.speed * dt;
+        this.z -= Math.cos(this.heading) * this.speed * dt;
+        if (Math.random() < 0.01) this.heading += (Math.random()-0.5)*2;
+        this.mesh.position.set(this.x, 0, this.z);
+        this.mesh.rotation.y = this.heading;
+        // Keep in bounds roughly
+        if (Math.abs(this.x) > 100) this.heading += Math.PI;
+        if (Math.abs(this.z) > 100) this.heading += Math.PI;
+    }
+}
+
+const trafficWaypoints = [
+    {x: 6, z: -1200}, {x: 6, z: 1200}, {x: -6, z: 1200}, {x: -6, z: -1200},
+    {x: -1200, z: 6}, {x: 1200, z: 6}, {x: 1200, z: -6}, {x: -1200, z: -6},
+    {x: 450, z: 0}, {x: 600, y: 15, z: 0}, {x: 750, z: 0}, {x: 600, z: 320}
+];
+
+class TrafficSystem {
+    constructor() {
+        this.vehicles = [];
+        this.peds = [];
+    }
+    init() {
+        this.vehicles = [];
+        this.peds = [];
+        // Spawn cars
+        const types = ['taxi', 'sedan', 'van', 'police'];
+        for (let i = 0; i < 24; i++) {
+            const t = types[Math.floor(Math.random() * types.length)];
+            const wp = trafficWaypoints[i % trafficWaypoints.length];
+            this.vehicles.push(new TrafficVehicle(t, wp.x + Math.random()*5, wp.z + Math.random()*5));
+        }
+        // Spawn peds
+        for (let i = 0; i < 15; i++) {
+            this.peds.push(new PedestrianNPC((Math.random()-0.5)*150, (Math.random()-0.5)*150));
+        }
+    }
+    update(dt, player) {
+        this.vehicles.forEach(v => v.update(dt, trafficWaypoints, player));
+        this.peds.forEach(p => p.update(dt));
+    }
+    cleanup() {
+        this.vehicles.forEach(v => { if (v.mesh) scene.remove(v.mesh); });
+        this.vehicles = [];
+        this.peds.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
+        this.peds = [];
+    }
+}
+const sysTraffic = new TrafficSystem();
+
+class CrazyTaxiSystem {
+    constructor() {
+        this.activeJob = false;
+        this.fare = 0;
+        this.timer = 0;
+        this.pickupZone = null;
+        this.dropZone = null;
+        this.ui = document.getElementById('hud-taxi');
+        if (!this.ui) {
+            this.ui = document.createElement('div');
+            this.ui.id = 'hud-taxi';
+            this.ui.className = 'hud-badge glass-panel';
+            this.ui.innerHTML = `🚕 <span id="val-taxi-fare" class="val">0</span> <span id="val-taxi-timer" style="margin-left:8px; color:#ff7675;">0s</span>`;
+            document.querySelector('.hud-group:last-child').appendChild(this.ui);
+        }
+    }
+    init() {
+        if(currentMode !== 'city') {
+            if (this.ui) this.ui.style.display = 'none';
+            return;
+        }
+        this.spawnPickup();
+    }
+    spawnPickup() {
+        this.activeJob = false;
+        if(this.pickupZone) scene.remove(this.pickupZone);
+        if(this.dropZone) scene.remove(this.dropZone);
+        if(this.ui) this.ui.style.display = 'none';
+        
+        this.pickupZone = new THREE.Group();
+        const beamGeom = new THREE.CylinderGeometry(1.5, 1.5, 80, 16);
+        beamGeom.translate(0, 40, 0);
+        const beamMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.35, depthWrite: false });
+        this.pickupZone.add(new THREE.Mesh(beamGeom, beamMat));
+        
+        const ringGeom = new THREE.RingGeometry(4, 5, 32);
+        ringGeom.rotateX(-Math.PI/2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeom, ringMat);
+        ring.position.y = 0.1;
+        this.pickupZone.add(ring);
+        
+        const arrowGeom = new THREE.ConeGeometry(2, 4, 16);
+        arrowGeom.rotateX(Math.PI);
+        const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+        const arrow = new THREE.Mesh(arrowGeom, arrowMat);
+        arrow.position.y = 10;
+        this.pickupZone.arrow = arrow;
+        this.pickupZone.add(arrow);
+
+        this.pickupZone.position.set((Math.random()-0.5)*1000, 0, (Math.random()-0.5)*1000);
+        scene.add(this.pickupZone);
+    }
+    spawnDropoff() {
+        this.activeJob = true;
+        this.timer = 60;
+        if(this.pickupZone) scene.remove(this.pickupZone);
+        
+        this.dropZone = new THREE.Group();
+        const beamGeom = new THREE.CylinderGeometry(1.5, 1.5, 80, 16);
+        beamGeom.translate(0, 40, 0);
+        const beamMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.35, depthWrite: false });
+        this.dropZone.add(new THREE.Mesh(beamGeom, beamMat));
+        
+        const ringGeom = new THREE.RingGeometry(4, 5, 32);
+        ringGeom.rotateX(-Math.PI/2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeom, ringMat);
+        ring.position.y = 0.1;
+        this.dropZone.add(ring);
+
+        const arrowGeom = new THREE.ConeGeometry(2, 4, 16);
+        arrowGeom.rotateX(Math.PI);
+        const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+        const arrow = new THREE.Mesh(arrowGeom, arrowMat);
+        arrow.position.y = 10;
+        this.dropZone.arrow = arrow;
+        this.dropZone.add(arrow);
+
+        this.dropZone.position.set((Math.random()-0.5)*1000, 0, (Math.random()-0.5)*1000);
+        scene.add(this.dropZone);
+        if(this.ui) this.ui.style.display = 'flex';
+    }
+    update(dt, player) {
+        if (currentMode !== 'city') return;
+        
+        if (this.pickupZone && this.pickupZone.arrow) {
+            this.pickupZone.arrow.position.y = 10 + Math.sin(Date.now() * 0.005) * 1.5;
+        }
+        if (this.dropZone && this.dropZone.arrow) {
+            this.dropZone.arrow.position.y = 10 + Math.sin(Date.now() * 0.005) * 1.5;
+        }
+
+        if (!this.activeJob) {
+            if (this.pickupZone) {
+                const dist = Math.hypot(player.x - this.pickupZone.position.x, player.z - this.pickupZone.position.z);
+                if (dist < 10 && player.speed < 2) {
+                    this.spawnDropoff();
+                    sound.playTone(600, 0.2, 'square');
+                }
+            }
+        } else {
+            this.timer -= dt;
+            const fareEl = document.getElementById('val-taxi-fare');
+            const timerEl = document.getElementById('val-taxi-timer');
+            if (fareEl) fareEl.innerText = this.fare;
+            if (timerEl) timerEl.innerText = Math.ceil(this.timer) + 's';
+            
+            if (this.timer <= 0) {
+                this.spawnPickup(); // failed
+                sound.playTone(200, 0.5, 'sawtooth');
+            } else {
+                const dist = Math.hypot(player.x - this.dropZone.position.x, player.z - this.dropZone.position.z);
+                if (dist < 10 && player.speed < 2) {
+                    const earnedFare = 100 + Math.ceil(this.timer)*5;
+                    this.fare += earnedFare;
+                    persistence.saveRecord('taxiCash', (persistence.getRecord('taxiCash') || 0) + earnedFare);
+                    sound.playTone(800, 0.3, 'sine');
+                    this.spawnPickup();
+                }
+            }
+        }
+    }
+    cleanup() {
+        if (this.pickupZone) { scene.remove(this.pickupZone); this.pickupZone = null; }
+        if (this.dropZone) { scene.remove(this.dropZone); this.dropZone = null; }
+        if (this.ui) this.ui.style.display = 'none';
+        this.activeJob = false;
+    }
+}
+const sysTaxi = new CrazyTaxiSystem();
+
+class PoliceHeatSystem {
+    constructor() {
+        this.stars = 0;
+        this.heatTimer = 0;
+        this.ui = document.getElementById('hud-police');
+        if (!this.ui) {
+            this.ui = document.createElement('div');
+            this.ui.id = 'hud-police';
+            this.ui.className = 'hud-badge glass-panel';
+            this.ui.style.color = '#ff4757';
+            this.ui.style.textShadow = '0 0 8px rgba(255,71,87,0.8)';
+            this.ui.innerHTML = `🚔 <span id="val-police-stars" class="val"></span>`;
+            document.querySelector('.hud-group:last-child').appendChild(this.ui);
+        }
+    }
+    init() {
+        this.stars = 0;
+        this.updateUI();
+    }
+    addHeat(amount) {
+        if (currentMode !== 'city') return;
+        if(this.stars < 3) {
+            this.stars += amount;
+            if(this.stars > 3) this.stars = 3;
+            this.updateUI();
+            this.heatTimer = 20; // 20 seconds to lose heat
+        }
+    }
+    updateUI() {
+        if(currentMode !== 'city') {
+            if (this.ui) this.ui.style.display = 'none';
+            return;
+        }
+        if (this.ui) this.ui.style.display = this.stars > 0 ? 'flex' : 'none';
+        const starsEl = document.getElementById('val-police-stars');
+        if (starsEl) {
+            let s = '';
+            for(let i=0; i<this.stars; i++) s += '★';
+            starsEl.innerText = s;
+        }
+    }
+    update(dt) {
+        if(this.stars > 0) {
+            this.heatTimer -= dt;
+            if (sound.playPoliceSiren) sound.playPoliceSiren();
+            if(this.heatTimer <= 0) {
+                this.stars--;
+                this.heatTimer = 20;
+                this.updateUI();
+            }
+            
+            // If stars > 0, make police cars chase player
+            sysTraffic.vehicles.forEach(v => {
+                if (v.type === 'police') {
+                    const dx = player.x - v.x;
+                    const dz = player.z - v.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist < 50) {
+                        v.heading = Math.atan2(-dx, -dz);
+                    }
+                }
+            });
+        }
+    }
+    cleanup() {
+        this.stars = 0;
+        this.updateUI();
+    }
+}
+const sysPolice = new PoliceHeatSystem();
+// ==========================================
+
+function updatePlayer(dt) {
         if (!currentMode) return;
         if (currentMode === 'race' && raceState === 'countdown') return;
 
-        // Nitro Boost Mechanics
+        // Normalise against 60fps baseline, clamped to guard against tab-restore spikes
+        const k = Math.min(Math.max((dt || 0.016) * 60, 0.2), 2.0);
+
+        // Nitro Boost Mechanics: Gated so stationary cars don't refill sitting still!
         const isNitroActive = keys.nitro && player.nitroFuel > 0 && Math.abs(player.speed) > 0.3;
         if (isNitroActive) {
-            player.nitroFuel = Math.max(0, player.nitroFuel - 0.75);
+            player.nitroFuel = Math.max(0, player.nitroFuel - 0.75 * k);
             screenShake = Math.max(screenShake, 0.08);
-        } else {
-            player.nitroFuel = Math.min(100, player.nitroFuel + 0.25);
+        } else if (Math.abs(player.speed) > 0.15) {
+            // Only regenerate nitro while in motion!
+            player.nitroFuel = Math.min(100, player.nitroFuel + 0.25 * k);
         }
 
         document.getElementById('nitro-fill').style.width = `${player.nitroFuel}%`;
@@ -3848,12 +4301,12 @@
         }
 
         if (keys.forward) {
-            player.speed = Math.min(player.speed + curAccel, curMaxSpeed);
+            player.speed = Math.min(player.speed + curAccel * k, curMaxSpeed);
         } else if (keys.backward) {
-            player.speed = Math.max(player.speed - player.brakePower, player.maxRevSpeed);
+            player.speed = Math.max(player.speed - player.brakePower * k, player.maxRevSpeed);
         } else {
             const effFriction = isOnTrack ? player.friction : (player.friction * 0.965);
-            player.speed *= effFriction;
+            player.speed *= Math.pow(effFriction, k);
             if (Math.abs(player.speed) < 0.002) player.speed = 0;
         }
 
@@ -3868,87 +4321,129 @@
 
         if (keys.drift && Math.abs(player.speed) > 0.3) {
             effectiveTurn *= 1.85; // Power drift rally flick!
-            player.speed *= 0.985;
+            player.speed *= Math.pow(0.985, k);
             sound.playDrift();
         }
 
         if (keys.left) {
-            player.heading += effectiveTurn * steerDir;
-            player.roll = THREE.MathUtils.lerp(player.roll, 0.18, 0.15);
+            player.heading += effectiveTurn * steerDir * k;
+            player.roll = THREE.MathUtils.lerp(player.roll, 0.18, 0.15 * k);
         } else if (keys.right) {
-            player.heading -= effectiveTurn * steerDir;
-            player.roll = THREE.MathUtils.lerp(player.roll, -0.18, 0.15);
+            player.heading -= effectiveTurn * steerDir * k;
+            player.roll = THREE.MathUtils.lerp(player.roll, -0.18, 0.15 * k);
         } else {
-            player.roll = THREE.MathUtils.lerp(player.roll, 0, 0.2);
+            player.roll = THREE.MathUtils.lerp(player.roll, 0, 0.2 * k);
         }
 
-        if (keys.forward) player.pitch = THREE.MathUtils.lerp(player.pitch, -0.06, 0.1);
-        else if (keys.backward) player.pitch = THREE.MathUtils.lerp(player.pitch, 0.09, 0.1);
-        else player.pitch = THREE.MathUtils.lerp(player.pitch, 0, 0.2);
+        if (keys.forward) player.pitch = THREE.MathUtils.lerp(player.pitch, -0.06, 0.1 * k);
+        else if (keys.backward) player.pitch = THREE.MathUtils.lerp(player.pitch, 0.09, 0.1 * k);
+        else player.pitch = THREE.MathUtils.lerp(player.pitch, 0, 0.2 * k);
 
-        // Position Updates
-        player.x -= Math.sin(player.heading) * player.speed;
-        player.z -= Math.cos(player.heading) * player.speed;
+        // Position Updates (Delta-Time Scaled)
+        player.x -= Math.sin(player.heading) * player.speed * k;
+        player.z -= Math.cos(player.heading) * player.speed * k;
 
         // River Splash Detection
         if (Math.abs(player.x - (-18)) < 8 && Math.abs(player.speed) > 0.4 && player.isGrounded) {
             if (Math.random() < 0.15) sound.playSplash();
         }
 
-        // Gravity & Ramp Jumps
-        player.y += player.vy;
+        // Gravity & Ramp Jumps (Delta-Time Scaled)
+        player.y += player.vy * k;
         if (player.y > 0.05) {
-            player.vy -= 0.02;
+            player.vy -= 0.02 * k;
             player.isGrounded = false;
         } else {
-            if (!player.isGrounded) sound.playThud();
+            if (!player.isGrounded) {
+                sound.playThud();
+                const impactVy = Math.abs(player.vy);
+                if (impactVy > 0.12) {
+                    triggerPlayerImpact(Math.min(impactVy * 2.2, 1.0));
+                    if (player.mesh) {
+                        player.mesh.scale.set(1.08, 0.82, 1.08); // suspension squash
+                    }
+                }
+            }
             player.y = 0;
             player.vy = 0;
             player.isGrounded = true;
         }
+        // Smoothly restore vehicle suspension squash back to 1.0
+        if (player.mesh && player.mesh.scale && player.mesh.scale.y < 0.99) {
+            player.mesh.scale.x = THREE.MathUtils.lerp(player.mesh.scale.x, 1.0, 0.18 * k);
+            player.mesh.scale.y = THREE.MathUtils.lerp(player.mesh.scale.y, 1.0, 0.18 * k);
+            player.mesh.scale.z = THREE.MathUtils.lerp(player.mesh.scale.z, 1.0, 0.18 * k);
+        }
 
-        // Ramp Launch Collision
+        // Ramp Launch Collision with Directional Gating
         activeColliders.forEach(c => {
             if (c.isRamp) {
-                const dist = new THREE.Vector2(player.x, player.z).distanceTo(new THREE.Vector2(c.position.x, c.position.z));
-                if (dist < 4.8 && player.isGrounded && player.speed > 0.5) {
+                const dx = player.x - c.position.x;
+                const dz = player.z - c.position.z;
+                if (Math.abs(dx) > 6 || Math.abs(dz) > 6) return; // Early-out
+
+                const dist = Math.hypot(dx, dz);
+                const toRamp = Math.atan2(c.position.x - player.x, c.position.z - player.z);
+                let a = toRamp - player.heading;
+                while (a < -Math.PI) a += Math.PI * 2;
+                while (a > Math.PI) a -= Math.PI * 2;
+
+                if (dist < 4.8 && Math.abs(a) < 0.95 && player.isGrounded && player.speed > 0.45) {
                     player.vy = 0.46 + player.speed * 0.22;
                     player.isGrounded = false;
                     sound.playRampJump();
                 }
             } else {
-                // Basalt Rock Column Solid Collision & Rebound (Bounded by physical height - no sky barriers!)
+                // Basalt Rock Column Solid Collision: Deflect rather than full reverse
                 const colHeight = c.columnHeight || 3.8;
                 if (player.y < colHeight) {
-                    const dist = new THREE.Vector2(player.x, player.z).distanceTo(new THREE.Vector2(c.position.x, c.position.z));
+                    const dx = player.x - c.position.x;
+                    const dz = player.z - c.position.z;
+                    if (Math.abs(dx) > 4 || Math.abs(dz) > 4) return;
+
+                    const dist = Math.hypot(dx, dz);
                     if (dist < 2.3) {
-                        const dx = player.x - c.position.x;
-                        const dz = player.z - c.position.z;
                         const nx = dx / (dist || 0.001);
                         const nz = dz / (dist || 0.001);
                         player.x = c.position.x + nx * 2.32;
                         player.z = c.position.z + nz * 2.32;
-                        if (Math.abs(player.speed) > 0.3) {
-                            player.speed = -player.speed * 0.38;
-                            sound.playThud();
-                            triggerPlayerImpact(0.75);
-                            spawnVoxelCrumbles(c.position.x, 1.2, c.position.z, 10, 0x2d3436);
-                        } else {
-                            player.speed = 0;
+
+                        const hx = -Math.sin(player.heading);
+                        const hz = -Math.cos(player.heading);
+                        const dot = hx * nx + hz * nz;
+
+                        if (dot < 0) {
+                            const sx = hx - nx * dot;
+                            const sz = hz - nz * dot;
+                            const slen = Math.hypot(sx, sz);
+                            if (slen > 0.12 && -dot < 0.82) {
+                                player.heading = Math.atan2(-sx / slen, -sz / slen);
+                                player.speed *= 0.76;
+                            } else {
+                                player.speed = -player.speed * 0.32;
+                            }
+                            if (-dot > 0.5 && Math.abs(player.speed) > 0.3) {
+                                sound.playThud();
+                                triggerPlayerImpact(0.75);
+                                spawnVoxelCrumbles(c.position.x, 1.2, c.position.z, 10, 0x2d3436);
+                            }
                         }
                     }
                 }
             }
         });
 
-        // Solid Tree Trunk Collisions: Physical Rebound & Canopy Leaves Shower (Bounded by height - no sky barriers!)
+        // Solid Tree Trunk Collisions: Tangential Deflection (Keep rolling instead of reversing on glance!)
         for (let i = 0; i < activeTrees.length; i++) {
             const t = activeTrees[i];
             const treeHeight = t.height || 4.8;
             if (player.y >= treeHeight) continue; // Fly cleanly above tree canopy!
 
             const dx = player.x - t.x;
+            if (dx > 5.5 || dx < -5.5) continue; // Early-out bounding box
             const dz = player.z - t.z;
+            if (dz > 5.5 || dz < -5.5) continue;
+
             const dist = Math.sqrt(dx * dx + dz * dz);
             const minDist = t.radius + 1.25;
 
@@ -3958,14 +4453,37 @@
                 player.x = t.x + nx * minDist;
                 player.z = t.z + nz * minDist;
 
-                if (Math.abs(player.speed) > 0.28) {
-                    player.speed = -player.speed * 0.42; // Rebound recoil!
-                    sound.playThud();
-                    triggerPlayerImpact(0.85);
-                    spawnVoxelCrumbles(t.x, 2.6, t.z, 12, t.leafColor || 0x10ac84);
-                    t.wobble = (Math.random() > 0.5 ? 1 : -1) * 0.24;
-                } else {
-                    player.speed = 0;
+                const hx = -Math.sin(player.heading);
+                const hz = -Math.cos(player.heading);
+                const dot = hx * nx + hz * nz;
+
+                if (dot < 0) {
+                    const sx = hx - nx * dot;
+                    const sz = hz - nz * dot;
+                    const slen = Math.hypot(sx, sz);
+
+                    if (slen > 0.12 && -dot < 0.82) {
+                        // Glancing scrape: deflect heading along trunk and keep rolling!
+                        player.heading = Math.atan2(-sx / slen, -sz / slen);
+                        player.speed *= 0.74;
+                        if (-dot > 0.45 && Math.abs(player.speed) > 0.35) {
+                            sound.playThud();
+                            triggerPlayerImpact(0.5);
+                            spawnVoxelCrumbles(t.x, 2.4, t.z, 6, t.leafColor || 0x10ac84);
+                            t.wobble = (Math.random() > 0.5 ? 1 : -1) * 0.18;
+                        }
+                    } else {
+                        // Near head-on: real rebound
+                        if (Math.abs(player.speed) > 0.28) {
+                            player.speed = -player.speed * 0.32;
+                            sound.playThud();
+                            triggerPlayerImpact(0.85);
+                            spawnVoxelCrumbles(t.x, 2.6, t.z, 12, t.leafColor || 0x10ac84);
+                            t.wobble = (Math.random() > 0.5 ? 1 : -1) * 0.26;
+                        } else {
+                            player.speed = 0;
+                        }
+                    }
                 }
             }
         }
@@ -4172,26 +4690,20 @@
             player.currentWpIndex = ((player.currentWpIndex || 1) + 1) % raceWaypoints.length;
         }
 
-        // Lap & Midpoint Detection
-        if (distToStart < 28) {
-            if (!player.passedMidpoint) {
-                const halfWp = raceWaypoints[Math.floor(raceWaypoints.length / 2)];
-                const distToHalf = new THREE.Vector2(player.x, player.z).distanceTo(new THREE.Vector2(halfWp.x, halfWp.z));
-                if (distToHalf < 70) player.passedMidpoint = true;
-            } else {
-                const completedLapTime = (performance.now() - currentLapStartTime) / 1000;
-                if (completedLapTime < bestLapTime) bestLapTime = completedLapTime;
-                currentLapStartTime = performance.now();
-                player.passedMidpoint = false;
-                raceLaps++;
-                updateRaceHUD();
-                sound.playCountdown(true);
-                if (raceLaps > TOTAL_RACE_LAPS) finishRace(calculatePlayerPosition());
-            }
-        } else {
-            const halfWp = raceWaypoints[Math.floor(raceWaypoints.length / 2)];
-            const distToHalf = new THREE.Vector2(player.x, player.z).distanceTo(new THREE.Vector2(halfWp.x, halfWp.z));
-            if (distToHalf < 70) player.passedMidpoint = true;
+        // 4-Sector Checkpoint Lap Validation
+        const sectors = [0, 0.25, 0.5, 0.75].map(f => Math.floor(raceWaypoints.length * f));
+        player.sectorsHit = player.sectorsHit || new Set();
+        if (sectors.includes(player.currentWpIndex)) player.sectorsHit.add(player.currentWpIndex);
+
+        if (distToStart < 28 && player.sectorsHit.size >= 4) {
+            const completedLapTime = (performance.now() - currentLapStartTime) / 1000;
+            if (completedLapTime < bestLapTime) bestLapTime = completedLapTime;
+            currentLapStartTime = performance.now();
+            player.sectorsHit.clear();
+            raceLaps++;
+            updateRaceHUD();
+            sound.playCountdown(true);
+            if (raceLaps > TOTAL_RACE_LAPS) finishRace(calculatePlayerPosition());
         }
 
         // 6 AI Rivals Intelligence & Vehicle Control
@@ -4237,6 +4749,13 @@
                 }
             }
 
+            // Dynamic Rubber-Banding
+            const playerProgress = (raceLaps * raceWaypoints.length) + (player.currentWpIndex || 0);
+            const aiProgress     = (ai.lap * raceWaypoints.length) + ai.waypointIndex;
+            const behind         = playerProgress - aiProgress;
+            const band = THREE.MathUtils.clamp(1 + behind * 0.025, 0.88, 1.14);
+            targetSpeed *= band;
+
             ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed || (ai.topSpeed * 0.5), targetSpeed, 0.045);
 
             ai.mesh.position.x -= Math.sin(ai.mesh.rotation.y) * ai.currentSpeed;
@@ -4244,6 +4763,19 @@
 
             if (ai.mesh.wheels) {
                 ai.mesh.wheels.forEach(w => w.tire.rotation.x += ai.currentSpeed / 0.65);
+            }
+
+            // AI Physical Car-to-Car Collisions
+            const d = Math.hypot(player.x - ai.mesh.position.x, player.z - ai.mesh.position.z);
+            if (d < 3.4) {
+                const nx = (player.x - ai.mesh.position.x) / (d || 0.001);
+                const nz = (player.z - ai.mesh.position.z) / (d || 0.001);
+                player.x = ai.mesh.position.x + nx * 3.4;
+                player.z = ai.mesh.position.z + nz * 3.4;
+                player.speed *= 0.88;
+                ai.currentSpeed *= 0.9;
+                sound.playThud();
+                triggerPlayerImpact(0.55);
             }
         });
 
@@ -4288,8 +4820,8 @@
         let targetLookX = player.x, targetLookY = player.y + 1.2, targetLookZ = player.z;
 
         const speedRatio = Math.abs(player.speed) / player.baseMaxSpeed;
-        const targetFov = 38 + Math.min(speedRatio * 12, 16);
-        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.08);
+        const isNitroActive = keys.nitro && player.nitroFuel > 0;
+        camera.fov = THREE.MathUtils.lerp(camera.fov, 62 + speedRatio * 14 + (isNitroActive ? 8 : 0), 0.1);
         camera.updateProjectionMatrix();
 
         const lookLead = player.speed * 4.0;
@@ -4372,11 +4904,16 @@
         const dt = (now - lastTime) / 1000;
         lastTime = now;
 
+        if (isPaused) return;
+
         updatePlayer(dt);
         updateCrates();
         updateDebris();
         updateRaceLogic();
         updateCameraPosition(false);
+        sysTraffic.update(dt, player);
+        sysTaxi.update(dt, player);
+        sysPolice.update(dt);
 
         if (currentMode) {
             comboManager.update(dt, player, keys);
