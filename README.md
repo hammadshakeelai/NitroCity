@@ -21,18 +21,21 @@ No install, no build step — it runs straight in the browser, desktop or phone.
 
 ## 🎮 Game Modes
 
-1. **🏙️ City Free-Roam (Sandbox)**
-   - Cruise through a vibrant cartoon city grid with avenues and sidewalk curbs.
-   - Hit stunt ramps to launch over road intersections.
-   - Knock over stacks of toy crates with Bruno Simon style physics.
-   - Collect 10 hidden golden stars scattered across rooftops, alleyways, and plazas.
-   - Unflip/reset your car anytime with `R` or on-screen button.
+1. **🌲 Forest & River Playground (Sandbox)**
+   - Blast through a lush pine & autumn forest with a sparkling river.
+   - Cross wooden bridges and splash through water.
+   - Launch off massive river ramps and rack up a stunt score.
+   - Smash destructible crates with Bruno Simon style physics.
+   - Collect 10 golden stars hidden across the map.
+   - Unflip/reset your car anytime with `R` or the on-screen button.
 
-2. **🏁 Circuit Track Race**
-   - A closed-loop asphalt racetrack with red/white curbs, grandstands, and start/finish gantry.
+2. **🏁 Dusk Circuit Race**
+   - High-speed off-road circuit racing against 2 AI rivals.
    - 3-2-1-GO! countdown with audio beeps.
-   - 2 AI rival cars navigating the track in real-time.
-   - 3-lap championship race with lap timers, checkpoint validation, and podium finish.
+   - Nitro boost drafting and rumble curbs.
+   - 3-lap championship race with lap timers and a podium finish.
+
+Progress is tracked across sessions: **best circuit lap**, **high stunt score**, and **stars found (x/10)**. A 🎨 **Vehicle Garage** lets you swap your ride.
 
 ---
 
@@ -40,13 +43,15 @@ No install, no build step — it runs straight in the browser, desktop or phone.
 
 | Action | Desktop Keyboard | Mobile Touch |
 | :--- | :--- | :--- |
-| **Accelerate** | `W` or `Up Arrow` | `▲` Green Pedal (Right side) |
-| **Brake / Reverse** | `S` or `Down Arrow` | `▼` Red Pedal (Right side) |
+| **Accelerate** | `W` or `Up Arrow` | `▲` Pedal (Right side) |
+| **Brake / Reverse** | `S` or `Down Arrow` | `▼` Pedal (Right side) |
 | **Steer Left / Right** | `A` / `D` or `◄` / `►` | `◀` / `▶` Buttons (Left side) |
+| **Nitro Boost** | `SHIFT` | `💨` Button (Right side) |
 | **Handbrake / Drift** | `SPACE` | `⚡` Button (Right side) |
+| **Cycle Camera** | `C` | — |
+| **Zoom** | Mouse Wheel | Pinch |
 | **Reset / Unflip Car** | `R` | `🔄` HUD Button |
 | **Return to Menu** | `ESC` | `🏠` HUD Button |
-| **Toggle Sound** | Click 🔊 in HUD | Tap 🔊 in HUD |
 
 ---
 
