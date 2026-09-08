@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" width="1200" height="330" role="img" aria-label="NitroCity 3D - Forest River Playground and Circuit Racer">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="55%" stop-color="#1b2440"/>
+      <stop offset="100%" stop-color="#3b2f4a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ff7a5c" stop-opacity="0.85"/>
+      <stop offset="45%" stop-color="#ff4757" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#ff4757" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a3350"/>
+      <stop offset="100%" stop-color="#151b2e"/>
+    </linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff6b78"/>
+      <stop offset="55%" stop-color="#ff4757"/>
+      <stop offset="100%" stop-color="#c9243b"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9fd8ff"/>
+      <stop offset="100%" stop-color="#2b5f8f"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="45%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#ff4757" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="0" y="0" width="1200" height="330" rx="16"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="330" fill="url(#sky)"/>
+    <ellipse cx="950" cy="250" rx="470" ry="230" fill="url(#glow)"/>
+
+    <path d="M0 214 L104 168 L176 200 L262 152 L352 198 L438 162 L520 206 L604 172 L700 210 L790 174 L884 208 L982 168 L1082 204 L1160 176 L1200 200 L1200 268 L0 268 Z" fill="#122b31" opacity="0.85"/>
+    <path d="M0 236 L92 200 L168 226 L268 190 L356 224 L452 196 L548 230 L648 200 L742 232 L846 202 L946 234 L1052 202 L1146 230 L1200 212 L1200 272 L0 272 Z" fill="#16453f" opacity="0.9"/>
+
+    <path d="M0 258 Q 180 244 360 258 T 720 258 T 1080 258 T 1200 252 L1200 268 Q 1080 276 960 268 T 600 268 T 240 268 T 0 272 Z" fill="url(#river)"/>
+
+    <rect x="0" y="268" width="1200" height="62" fill="url(#road)"/>
+    <rect x="0" y="268" width="1200" height="3" fill="#ff4757" opacity="0.55"/>
+    <g fill="#64748b" opacity="0.55">
+      <rect x="30" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="150" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="270" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="390" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="510" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="630" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="750" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="870" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="990" y="298" width="70" height="7" rx="3.5"/>
+      <rect x="1110" y="298" width="70" height="7" rx="3.5"/>
+    </g>
+    <g fill="#22d3ee" opacity="0.75">
+      <path d="M598 276 l18 0 l14 9 l-14 9 l-18 0 l14 -9 Z"/>
+      <path d="M628 276 l18 0 l14 9 l-14 9 l-18 0 l14 -9 Z"/>
+      <path d="M658 276 l18 0 l14 9 l-14 9 l-18 0 l14 -9 Z"/>
+    </g>
+
+    <g fill="#fbbf24">
+      <path d="M726 62 l7.4 15.5 l17 2.4 l-12.3 12 l2.9 16.9 l-15 -8 l-15 8 l2.9 -16.9 l-12.3 -12 l17 -2.4 Z" opacity="0.95"/>
+      <path d="M1128 108 l5.2 10.8 l11.9 1.7 l-8.6 8.4 l2 11.8 l-10.5 -5.6 l-10.5 5.6 l2 -11.8 l-8.6 -8.4 l11.9 -1.7 Z" opacity="0.7"/>
+      <path d="M842 42 l4.1 8.6 l9.4 1.4 l-6.8 6.6 l1.6 9.4 l-8.3 -4.4 l-8.3 4.4 l1.6 -9.4 l-6.8 -6.6 l9.4 -1.4 Z" opacity="0.5"/>
+    </g>
+
+    <g fill="#e2e8f0" opacity="0.28">
+      <rect x="600" y="176" width="120" height="6" rx="3"/>
+      <rect x="648" y="200" width="86" height="5" rx="2.5"/>
+      <rect x="586" y="226" width="146" height="6" rx="3"/>
+      <rect x="662" y="250" width="70" height="5" rx="2.5"/>
+    </g>
+
+    <g>
+      <path d="M770 214 q -62 -16 -104 4 q 58 8 78 12 Z" fill="url(#flame)" opacity="0.95"/>
+      <path d="M770 232 q -78 -4 -126 16 q 76 -2 108 -4 Z" fill="url(#flame)"/>
+      <path d="M770 248 q -54 10 -84 26 q 56 -10 82 -12 Z" fill="url(#flame)" opacity="0.8"/>
+
+      <ellipse cx="952" cy="278" rx="196" ry="13" fill="#000000" opacity="0.35"/>
+
+      <path d="M770 242 L770 212 Q770 197 785 194 L840 188 L880 147 Q888 138 901 138 L1000 138 Q1014 139 1021 149 L1060 191 L1120 197 Q1136 200 1136 215 L1136 242 Z" fill="url(#paint)" stroke="#1e1b2e" stroke-width="7" stroke-linejoin="round"/>
+
+      <path d="M901 152 Q894 152 890 157 L862 186 L1046 186 L1013 155 Q1008 152 1002 152 Z" fill="url(#glass)" stroke="#1e1b2e" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M906 158 L966 158 L940 182 L882 182 Z" fill="#ffffff" opacity="0.22"/>
+
+      <circle cx="932" cy="216" r="21" fill="#f8fafc" stroke="#1e1b2e" stroke-width="5"/>
+      <text x="932" y="225" font-family="Impact, 'Arial Black', Arial, sans-serif" font-size="26" fill="#ff4757" text-anchor="middle">3</text>
+
+      <rect x="1000" y="206" width="118" height="9" rx="4.5" fill="#f8fafc" opacity="0.85"/>
+      <g fill="#1e1b2e" opacity="0.5">
+        <rect x="800" y="206" width="42" height="7" rx="3.5"/>
+        <rect x="800" y="220" width="42" height="7" rx="3.5"/>
+      </g>
+
+      <path d="M1112 202 L1132 205 Q1140 207 1140 214 L1140 220 L1112 220 Z" fill="#fde68a" stroke="#1e1b2e" stroke-width="5" stroke-linejoin="round"/>
+
+      <g>
+        <circle cx="838" cy="242" r="38" fill="#111827" stroke="#1e1b2e" stroke-width="6"/>
+        <circle cx="838" cy="242" r="17" fill="#e2e8f0" stroke="#94a3b8" stroke-width="4"/>
+        <circle cx="1064" cy="242" r="38" fill="#111827" stroke="#1e1b2e" stroke-width="6"/>
+        <circle cx="1064" cy="242" r="17" fill="#e2e8f0" stroke="#94a3b8" stroke-width="4"/>
+      </g>
+    </g>
+
+    <g font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif">
+      <text x="66" y="166" font-size="92" textLength="452" lengthAdjust="spacingAndGlyphs" fill="#0b1120" opacity="0.75">NITROCITY</text>
+      <text x="62" y="162" font-size="92" textLength="452" lengthAdjust="spacingAndGlyphs" stroke="#0b1120" stroke-width="9" paint-order="stroke fill"><tspan fill="#ff4757">NITRO</tspan><tspan fill="#f8fafc">CITY</tspan></text>
+      <rect x="530" y="104" width="86" height="60" rx="12" fill="#22d3ee" stroke="#0b1120" stroke-width="6"/>
+      <text x="573" y="150" font-size="42" fill="#0b1120" text-anchor="middle">3D</text>
+    </g>
+
+    <text x="66" y="208" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="bold" fill="#94a3b8" letter-spacing="4.2">FOREST RIVER PLAYGROUND</text>
+    <text x="66" y="236" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="bold" fill="#94a3b8" letter-spacing="4.2">&#183; CIRCUIT RACER &#183;</text>
+
+    <g font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="bold">
+      <rect x="62" y="256" width="112" height="30" rx="15" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+      <text x="118" y="276" fill="#e2e8f0" text-anchor="middle">THREE.JS</text>
+      <rect x="184" y="256" width="132" height="30" rx="15" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+      <text x="250" y="276" fill="#e2e8f0" text-anchor="middle">NO BUILD STEP</text>
+      <rect x="326" y="256" width="152" height="30" rx="15" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+      <text x="402" y="276" fill="#e2e8f0" text-anchor="middle">PWA / MOBILE</text>
+    </g>
+
+    <rect x="2" y="2" width="1196" height="326" rx="16" fill="none" stroke="#334155" stroke-width="4"/>
+  </g>
+</svg>
