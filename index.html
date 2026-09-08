@@ -553,6 +553,7 @@
             <button id="btn-hud-cam" class="hud-icon-btn glass-panel" title="Toggle Camera View (C)">📷</button>
             <button id="btn-hud-sound" class="hud-icon-btn glass-panel" title="Toggle Sound">🔊</button>
             <button id="btn-hud-tod" class="hud-icon-btn glass-panel" title="Change Time of Day">🌙</button>
+            <button id="btn-hud-radio" class="hud-icon-btn glass-panel" title="Radio Station (Q)">📻</button>
         </div>
 
         <div class="hud-group">
@@ -852,6 +853,45 @@
             this.bassFilter = null;
             this.leadFilter = null;
             this.noiseBuffer = null;
+            this.stationIndex = 0;
+            this.stations = [
+                { name: "Neon Drive 104.2 FM", bpm: 126 },
+                { name: "Cyber Rush 168.0 FM", bpm: 168 },
+                { name: "Midnight Drift 88.5 FM", bpm: 88 }
+            ];
+        }
+
+        nextStation() {
+            this.stationIndex = (this.stationIndex + 1) % 3;
+            const station = this.stations[this.stationIndex];
+            this.bpm = station.bpm;
+            this.sound.playTone(400, 0.08, 'sawtooth');
+            
+            let banner = document.getElementById('radio-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'radio-banner';
+                banner.className = 'glass-panel';
+                banner.style.position = 'absolute';
+                banner.style.top = '140px';
+                banner.style.left = '50%';
+                banner.style.transform = 'translateX(-50%)';
+                banner.style.padding = '12px 24px';
+                banner.style.fontSize = '20px';
+                banner.style.fontWeight = 'bold';
+                banner.style.color = '#ffeaa7';
+                banner.style.zIndex = '100';
+                banner.style.transition = 'opacity 0.5s ease';
+                banner.style.pointerEvents = 'none';
+                document.body.appendChild(banner);
+            }
+            banner.innerText = '📻 ' + station.name;
+            banner.style.opacity = '1';
+            
+            if (this.bannerTimer) clearTimeout(this.bannerTimer);
+            this.bannerTimer = setTimeout(() => {
+                if (banner) banner.style.opacity = '0';
+            }, 2500);
         }
 
         init() {
@@ -1022,7 +1062,8 @@
 
         updateSpeedModulation(speedRatio, isNitro) {
             if (!this.sound.ctx || !this.bassFilter || !this.leadFilter) return;
-            this.bpm = 126 + Math.round(speedRatio * (isNitro ? 20 : 12));
+            const baseBpm = this.stations ? this.stations[this.stationIndex].bpm : 126;
+            this.bpm = baseBpm + Math.round(speedRatio * (isNitro ? 20 : 12));
             const cutoff = 750 + speedRatio * (isNitro ? 2400 : 1400);
             this.bassFilter.frequency.setTargetAtTime(cutoff, this.sound.ctx.currentTime, 0.12);
         }
@@ -2941,6 +2982,7 @@
         if (e.code === 'Space') keys.drift = true;
         if (e.code === 'KeyC') toggleCameraMode();
         if (e.code === 'KeyR') resetPlayerVehicle();
+        if (e.code === 'KeyQ') if (window.bgm) window.bgm.nextStation();
         if (e.code === 'Escape') returnToMenu();
         if (e.code === 'KeyP') {
             isPaused = !isPaused;
@@ -3052,6 +3094,7 @@
     }
 
     document.getElementById('btn-hud-tod').addEventListener('click', cycleTimeOfDay);
+    document.getElementById('btn-hud-radio').addEventListener('click', () => { if (window.bgm) window.bgm.nextStation(); });
 
     document.getElementById('btn-modal-restart').addEventListener('click', () => {
         if (currentMode === 'race') startRaceMode();
@@ -3094,6 +3137,38 @@
         ground.receiveShadow = true;
         scene.add(ground);
         activeWorldObjects.push(ground);
+        
+        window.speedTraps = [
+            {x: 0, y: 0, z: -450, radius: 18, cooldown: 0}, 
+            {x: 600, y: 15, z: 0, radius: 18, cooldown: 0}
+        ];
+        
+        window.speedTraps.forEach(trap => {
+            const gantryGeo = new THREE.BoxGeometry(40, 2, 2);
+            const gantryMat = new THREE.MeshStandardMaterial({color: 0xffd700, roughness: 0.5});
+            const gantry = new THREE.Mesh(gantryGeo, gantryMat);
+            gantry.position.set(trap.x, trap.y + 12, trap.z);
+            scene.add(gantry);
+            activeWorldObjects.push(gantry);
+            
+            const postGeo = new THREE.BoxGeometry(2, 12, 2);
+            const post1 = new THREE.Mesh(postGeo, gantryMat);
+            post1.position.set(trap.x - 19, trap.y + 6, trap.z);
+            scene.add(post1);
+            activeWorldObjects.push(post1);
+            
+            const post2 = new THREE.Mesh(postGeo, gantryMat);
+            post2.position.set(trap.x + 19, trap.y + 6, trap.z);
+            scene.add(post2);
+            activeWorldObjects.push(post2);
+            
+            const cameraGeo = new THREE.BoxGeometry(1.5, 1.5, 2);
+            const cameraMat = new THREE.MeshStandardMaterial({color: 0x222222});
+            const cam = new THREE.Mesh(cameraGeo, cameraMat);
+            cam.position.set(trap.x, trap.y + 11, trap.z + 1);
+            scene.add(cam);
+            activeWorldObjects.push(cam);
+        });
 
         // Grid of Main Multi-Lane Avenues
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x22242b, roughness: 0.65 });
@@ -4280,6 +4355,45 @@ function updatePlayer(dt) {
 
         // Normalise against 60fps baseline, clamped to guard against tab-restore spikes
         const k = Math.min(Math.max((dt || 0.016) * 60, 0.2), 2.0);
+
+        if (window.speedTraps && window.speedTraps.length > 0) {
+            const speedKMH = Math.round(Math.abs(player.speed) * 80);
+            window.speedTraps.forEach(trap => {
+                if (trap.cooldown > 0) trap.cooldown -= dt;
+                
+                const dx = player.x - trap.x;
+                const dy = player.y - trap.y;
+                const dz = player.z - trap.z;
+                const distSq = dx*dx + dy*dy + dz*dz;
+                
+                if (distSq < trap.radius * trap.radius && trap.cooldown <= 0 && speedKMH > 130) {
+                    trap.cooldown = 8.0;
+                    
+                    const flash = document.getElementById('impact-flash');
+                    if (flash) {
+                        flash.style.opacity = '1';
+                        flash.style.boxShadow = 'inset 0 0 120px rgba(255, 255, 255, 1)';
+                        setTimeout(() => {
+                            flash.style.opacity = '0';
+                            flash.style.boxShadow = 'inset 0 0 75px rgba(255, 71, 87, 0.85)';
+                        }, 150);
+                    }
+                    
+                    sound.playTone(800, 0.05, 'square', 0.2); // shutter sound
+                    
+                    const points = Math.floor(Math.random() * 501) + 500;
+                    player.score += points;
+                    document.getElementById('val-score').innerText = player.score;
+                    
+                    showComboBanner(`📸 SPEED TRAP: ${speedKMH} KM/H!`, `+${points} PTS`);
+                    
+                    const currentBest = persistence.loadRecord('bestSpeedTrap') || 0;
+                    if (speedKMH > currentBest) {
+                        persistence.saveRecord('bestSpeedTrap', speedKMH);
+                    }
+                }
+            });
+        }
 
         // Nitro Boost Mechanics: Gated so stationary cars don't refill sitting still!
         const isNitroActive = keys.nitro && player.nitroFuel > 0 && Math.abs(player.speed) > 0.3;
