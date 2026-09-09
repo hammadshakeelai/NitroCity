@@ -3902,9 +3902,12 @@
         const grandstand1 = createGrandstand(20, 238, 0);
         const grandstand2 = createGrandstand(-40, 238, 0);
         const grandstand3 = createGrandstand(0, 202, Math.PI);
+        // Decorative only. These sit right on the track edge (measured clearance
+        // was negative against circuitTrackPoints), so a solid box here reads as an
+        // invisible wall on the main straight. Scenery you can clip beats a false wall.
         [grandstand1, grandstand2, grandstand3].forEach(gs => {
-            const [hx, hz] = orientedHalfExtents(9.5, 4.6, gs.rotation.y);
-            registerSolidBox(gs, hx, hz, 5.6);
+            scene.add(gs);
+            activeWorldObjects.push(gs);
         });
 
         // Roadside Cartoon Sponsor Billboards
