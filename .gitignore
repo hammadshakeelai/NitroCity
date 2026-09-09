@@ -14,3 +14,6 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# Local browser captures and temporary validation work
+scratch/
