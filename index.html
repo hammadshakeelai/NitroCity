@@ -551,6 +551,7 @@
             <button id="btn-hud-menu" class="hud-icon-btn glass-panel" title="Return to Menu">🏠</button>
             <button id="btn-hud-reset" class="hud-icon-btn glass-panel" title="Reset/Unflip Buggy (R)">🔄</button>
             <button id="btn-hud-cam" class="hud-icon-btn glass-panel" title="Toggle Camera View (C)">📷</button>
+            <button id="btn-hud-horn" class="hud-icon-btn glass-panel" title="Honk Horn (H)">📢</button>
             <button id="btn-hud-sound" class="hud-icon-btn glass-panel" title="Toggle Sound">🔊</button>
             <button id="btn-hud-tod" class="hud-icon-btn glass-panel" title="Change Time of Day">🌙</button>
             <button id="btn-hud-radio" class="hud-icon-btn glass-panel" title="Radio Station (Q)">📻</button>
@@ -745,6 +746,25 @@
                 gain.connect(this.ctx.destination);
                 osc.start();
                 osc.stop(now + 0.22);
+            } catch (e) {}
+        }
+
+        playCarHorn() {
+            if (!this.initialized || this.isMuted) return;
+            try {
+                const now = this.ctx.currentTime;
+                [440, 554].forEach(freq => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(now + 0.25);
+                });
             } catch (e) {}
         }
 
@@ -2983,6 +3003,10 @@
         if (e.code === 'KeyC') toggleCameraMode();
         if (e.code === 'KeyR') resetPlayerVehicle();
         if (e.code === 'KeyQ') if (window.bgm) window.bgm.nextStation();
+        if (e.code === 'KeyH') {
+            sound.playCarHorn();
+            if (typeof sysTraffic !== 'undefined' && player) sysTraffic.honkHorn(player);
+        }
         if (e.code === 'Escape') returnToMenu();
         if (e.code === 'KeyP') {
             isPaused = !isPaused;
@@ -3061,6 +3085,10 @@
     document.getElementById('btn-hud-menu').addEventListener('click', returnToMenu);
     document.getElementById('btn-hud-reset').addEventListener('click', resetPlayerVehicle);
     document.getElementById('btn-hud-cam').addEventListener('click', toggleCameraMode);
+    document.getElementById('btn-hud-horn').addEventListener('click', () => {
+        sound.playCarHorn();
+        if (typeof sysTraffic !== 'undefined' && player) sysTraffic.honkHorn(player);
+    });
     document.getElementById('btn-hud-sound').addEventListener('click', () => {
         const muted = sound.toggleMute();
         document.getElementById('btn-hud-sound').innerText = muted ? '🔇' : '🔊';
@@ -4009,14 +4037,49 @@ function createCivilianCar(type) {
     
     return car;
 }
-
 function createPedestrianModel() {
     const ped = new THREE.Group();
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
     head.position.y = 1.4;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+    
+    const jacketColors = [0x00cec9, 0xff7675, 0x6c5ce7, 0xf1c40f, 0x55efc4];
+    const jeanColors = [0x0984e3, 0x2d3436, 0x636e72, 0x22a6b3];
+    const jacketColor = jacketColors[Math.floor(Math.random() * jacketColors.length)];
+    const jeanColor = jeanColors[Math.floor(Math.random() * jeanColors.length)];
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), new THREE.MeshStandardMaterial({ color: jacketColor }));
     body.position.y = 1.0;
-    ped.add(head, body);
+    
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), new THREE.MeshStandardMaterial({ color: jacketColor }));
+    armL.position.set(-0.25, 1.0, 0);
+    const armR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), new THREE.MeshStandardMaterial({ color: jacketColor }));
+    armR.position.set(0.25, 1.0, 0);
+
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), new THREE.MeshStandardMaterial({ color: jeanColor }));
+    legL.position.set(-0.1, 0.5, 0);
+    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), new THREE.MeshStandardMaterial({ color: jeanColor }));
+    legR.position.set(0.1, 0.5, 0);
+
+    // Emote plane
+    const emoteText = document.createElement('canvas');
+    emoteText.width = 64; emoteText.height = 64;
+    const eCtx = emoteText.getContext('2d');
+    eCtx.fillStyle = '#ff7675';
+    eCtx.beginPath();
+    eCtx.arc(32, 32, 30, 0, Math.PI*2);
+    eCtx.fill();
+    eCtx.fillStyle = '#ffffff';
+    eCtx.font = 'bold 40px sans-serif';
+    eCtx.textAlign = 'center';
+    eCtx.textBaseline = 'middle';
+    eCtx.fillText('!', 32, 35);
+    const emoteTex = new THREE.CanvasTexture(emoteText);
+    const emoteMat = new THREE.MeshBasicMaterial({ map: emoteTex, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    const emotePlane = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), emoteMat);
+    emotePlane.position.y = 1.9;
+    
+    ped.add(head, body, armL, armR, legL, legR, emotePlane);
+    ped.head = head; ped.body = body; ped.armL = armL; ped.armR = armR; ped.legL = legL; ped.legR = legR; ped.emote = emotePlane;
     return ped;
 }
 
@@ -4038,7 +4101,7 @@ class TrafficVehicle {
     update(dt, waypoints, player) {
         if (!this.active) return;
         
-        if (this.type === 'police' && sysPolice && sysPolice.stars > 0) {
+        if (this.type === 'police' && typeof sysPolice !== 'undefined' && sysPolice.stars > 0) {
             this.mesh.sirenL.emissiveIntensity = (Date.now() % 300 < 150) ? 2 : 0;
             this.mesh.sirenR.emissiveIntensity = (Date.now() % 300 >= 150) ? 2 : 0;
             const pVec = new THREE.Vector3(player.x, player.y, player.z);
@@ -4046,17 +4109,17 @@ class TrafficVehicle {
                 if (Math.random() < 0.05 && sound.playTone) sound.playTone(800 + Math.random()*200, 0.1, 'square', 0.1);
             }
         } else if (this.type === 'police') {
-            this.mesh.sirenL.emissiveIntensity = 0;
-            this.mesh.sirenR.emissiveIntensity = 0;
+            if (this.mesh.sirenL) this.mesh.sirenL.emissiveIntensity = 0;
+            if (this.mesh.sirenR) this.mesh.sirenR.emissiveIntensity = 0;
         }
         
-        // Raycast forward to avoid collisions
-        let blocked = false;
-        const forward = new THREE.Vector3(-Math.sin(this.heading), 0, -Math.cos(this.heading));
-        const pVec = new THREE.Vector3(player.x, player.y, player.z);
-        const myVec = this.mesh.position.clone();
+        if (!waypoints || waypoints.length === 0) return;
         
-        if (myVec.distanceTo(pVec) < 20) {
+        let blocked = false;
+        if (player && player.mesh) {
+            const myVec = new THREE.Vector3(this.x, 0, this.z);
+            const pVec = new THREE.Vector3(player.x, 0, player.z);
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), this.heading);
             const dirToPlayer = pVec.clone().sub(myVec).normalize();
             if (forward.dot(dirToPlayer) > 0.8 && myVec.distanceTo(pVec) < 6) {
                 blocked = true; // Player in front
@@ -4093,16 +4156,60 @@ class PedestrianNPC {
         this.x = x; this.z = z;
         this.speed = 1.5 + Math.random();
         this.heading = Math.random() * Math.PI * 2;
+        this.walkCycle = Math.random() * Math.PI * 2;
+        this.fleeTimer = 0;
     }
     update(dt) {
+        if (this.fleeTimer > 0) {
+            this.fleeTimer -= dt;
+            this.speed = 5.5; // sprint
+            if (this.fleeTimer <= 0) {
+                this.speed = 1.5 + Math.random(); // return to normal
+                this.mesh.emote.material.opacity = 0;
+                this.mesh.armL.rotation.x = 0;
+                this.mesh.armR.rotation.x = 0;
+            }
+        }
+
         this.x -= Math.sin(this.heading) * this.speed * dt;
         this.z -= Math.cos(this.heading) * this.speed * dt;
-        if (Math.random() < 0.01) this.heading += (Math.random()-0.5)*2;
+        if (Math.random() < 0.01 && this.fleeTimer <= 0) this.heading += (Math.random()-0.5)*2;
+        
+        // Keep in Skyscraper District: X: -180 to 180, Z: -400 to 400
+        if (this.x < -180) { this.x = -180; this.heading += Math.PI; }
+        if (this.x > 180) { this.x = 180; this.heading += Math.PI; }
+        if (this.z < -400) { this.z = -400; this.heading += Math.PI; }
+        if (this.z > 400) { this.z = 400; this.heading += Math.PI; }
+        
         this.mesh.position.set(this.x, 0, this.z);
         this.mesh.rotation.y = this.heading;
-        // Keep in bounds roughly
-        if (Math.abs(this.x) > 100) this.heading += Math.PI;
-        if (Math.abs(this.z) > 100) this.heading += Math.PI;
+        
+        this.walkCycle += this.speed * dt * 2.5;
+        this.mesh.legL.rotation.x = Math.sin(this.walkCycle) * 0.55;
+        this.mesh.legR.rotation.x = -Math.sin(this.walkCycle) * 0.55;
+        this.mesh.body.position.y = 1.0 + Math.abs(Math.sin(this.walkCycle)) * 0.05;
+        this.mesh.head.position.y = 1.4 + Math.abs(Math.sin(this.walkCycle)) * 0.05;
+        this.mesh.armL.position.y = 1.0 + Math.abs(Math.sin(this.walkCycle)) * 0.05;
+        this.mesh.armR.position.y = 1.0 + Math.abs(Math.sin(this.walkCycle)) * 0.05;
+        
+        if (this.fleeTimer <= 0) {
+            this.mesh.armL.rotation.x = -Math.sin(this.walkCycle) * 0.4;
+            this.mesh.armR.rotation.x = Math.sin(this.walkCycle) * 0.4;
+        }
+        
+        if (this.mesh.emote.material.opacity > 0) {
+            this.mesh.emote.rotation.y = -this.mesh.rotation.y + camera.rotation.y;
+        }
+    }
+    panic(carX, carZ) {
+        if (this.fleeTimer > 0) return;
+        this.fleeTimer = 2.5;
+        this.mesh.emote.material.opacity = 1;
+        this.mesh.armL.rotation.x = Math.PI; // Raise arms
+        this.mesh.armR.rotation.x = Math.PI;
+        // Sprint sideways away from car
+        const angleToCar = Math.atan2(carX - this.x, carZ - this.z);
+        this.heading = angleToCar + (Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2);
     }
 }
 
@@ -4116,6 +4223,21 @@ class TrafficSystem {
     constructor() {
         this.vehicles = [];
         this.peds = [];
+        this.crosswalks = [];
+    }
+    createZebraCrosswalk(x, z, rotY=0) {
+        const crossGroup = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthWrite: false });
+        for (let i = -3; i <= 3; i++) {
+            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 3.5), mat);
+            stripe.rotation.x = -Math.PI/2;
+            stripe.position.set(i * 1.0, 0.05, 0);
+            crossGroup.add(stripe);
+        }
+        crossGroup.position.set(x, 0, z);
+        crossGroup.rotation.y = rotY;
+        scene.add(crossGroup);
+        this.crosswalks.push(crossGroup);
     }
     init() {
         this.vehicles = [];
@@ -4127,20 +4249,48 @@ class TrafficSystem {
             const wp = trafficWaypoints[i % trafficWaypoints.length];
             this.vehicles.push(new TrafficVehicle(t, wp.x + Math.random()*5, wp.z + Math.random()*5));
         }
-        // Spawn peds
-        for (let i = 0; i < 15; i++) {
-            this.peds.push(new PedestrianNPC((Math.random()-0.5)*150, (Math.random()-0.5)*150));
+        // Spawn peds in Skyscraper District (-180 to 180, -400 to 400)
+        const numPeds = 18 + Math.floor(Math.random() * 7); // 18-24
+        for (let i = 0; i < numPeds; i++) {
+            const px = (Math.random() - 0.5) * 360;
+            const pz = (Math.random() - 0.5) * 800;
+            this.peds.push(new PedestrianNPC(px, pz));
         }
+        // Zebra Crosswalks at major intersections (heuristic coordinates near city center)
+        this.createZebraCrosswalk(0, 45, 0);
+        this.createZebraCrosswalk(0, -45, 0);
+        this.createZebraCrosswalk(45, 0, Math.PI/2);
+        this.createZebraCrosswalk(-45, 0, Math.PI/2);
     }
     update(dt, player) {
         this.vehicles.forEach(v => v.update(dt, trafficWaypoints, player));
-        this.peds.forEach(p => p.update(dt));
+        this.peds.forEach(p => {
+            p.update(dt);
+            if (player && player.mesh) {
+                const dist = Math.hypot(p.x - player.x, p.z - player.z);
+                const speedKmh = Math.abs(player.speed) * 15; // approximate conversion used in typical HUDs
+                if (dist < 12 && speedKmh > 25) {
+                    p.panic(player.x, player.z);
+                }
+            }
+        });
+    }
+    honkHorn(player) {
+        if (!player) return;
+        this.peds.forEach(p => {
+            const dist = Math.hypot(p.x - player.x, p.z - player.z);
+            if (dist < 30) {
+                p.panic(player.x, player.z);
+            }
+        });
     }
     cleanup() {
         this.vehicles.forEach(v => { if (v.mesh) scene.remove(v.mesh); });
         this.vehicles = [];
         this.peds.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
         this.peds = [];
+        this.crosswalks.forEach(c => scene.remove(c));
+        this.crosswalks = [];
     }
 }
 const sysTraffic = new TrafficSystem();
@@ -4281,6 +4431,9 @@ class PoliceHeatSystem {
     constructor() {
         this.stars = 0;
         this.heatTimer = 0;
+        this.roadblockActive = false;
+        this.roadblockCruisers = [];
+        this.roadblockCones = [];
         this.ui = document.getElementById('hud-police');
         if (!this.ui) {
             this.ui = document.createElement('div');
@@ -4288,12 +4441,17 @@ class PoliceHeatSystem {
             this.ui.className = 'hud-badge glass-panel';
             this.ui.style.color = '#ff4757';
             this.ui.style.textShadow = '0 0 8px rgba(255,71,87,0.8)';
-            this.ui.innerHTML = `🚔 <span id="val-police-stars" class="val"></span>`;
+            this.ui.innerHTML = `🚓 <span id="val-police-stars" class="val"></span>`;
             document.querySelector('.hud-group:last-child').appendChild(this.ui);
         }
     }
     init() {
         this.stars = 0;
+        this.roadblockActive = false;
+        this.roadblockCruisers.forEach(rc => { scene.remove(rc.mesh); });
+        this.roadblockCruisers = [];
+        this.roadblockCones.forEach(c => { scene.remove(c); });
+        this.roadblockCones = [];
         this.updateUI();
     }
     addHeat(amount) {
@@ -4314,7 +4472,7 @@ class PoliceHeatSystem {
         const starsEl = document.getElementById('val-police-stars');
         if (starsEl) {
             let s = '';
-            for(let i=0; i<this.stars; i++) s += '★';
+            for(let i=0; i<this.stars; i++) s += '⭐';
             starsEl.innerText = s;
         }
     }
@@ -4329,20 +4487,87 @@ class PoliceHeatSystem {
             }
             
             // If stars > 0, make police cars chase player
-            sysTraffic.vehicles.forEach(v => {
-                if (v.type === 'police') {
-                    const dx = player.x - v.x;
-                    const dz = player.z - v.z;
-                    const dist = Math.hypot(dx, dz);
-                    if (dist < 50) {
-                        v.heading = Math.atan2(-dx, -dz);
+            if (typeof sysTraffic !== 'undefined') {
+                sysTraffic.vehicles.forEach(v => {
+                    if (v.type === 'police') {
+                        const dx = player.x - v.x;
+                        const dz = player.z - v.z;
+                        const dist = Math.hypot(dx, dz);
+                        if (dist < 50) {
+                            v.heading = Math.atan2(-dx, -dz);
+                        }
+                    }
+                });
+            }
+            
+            // Roadblock at 3 stars
+            if (this.stars >= 3 && !this.roadblockActive && Math.abs(player.speed) > 5) {
+                this.roadblockActive = true;
+                const distanceAhead = 90 + Math.random() * 30; // 90-120m
+                const rbX = player.x - Math.sin(player.heading) * distanceAhead;
+                const rbZ = player.z - Math.cos(player.heading) * distanceAhead;
+                
+                // Spawn two cruisers
+                for (let i = -1; i <= 1; i += 2) {
+                    const rc = createCivilianCar('police');
+                    rc.position.set(rbX + i * 2.5 * Math.cos(player.heading), 0, rbZ - i * 2.5 * Math.sin(player.heading));
+                    rc.rotation.y = player.heading + Math.PI / 2 + (i * 0.2); // angled
+                    scene.add(rc);
+                    this.roadblockCruisers.push({ mesh: rc, vel: new THREE.Vector3(0,0,0) });
+                }
+                
+                // Spawn orange traffic cones with blinking hazard barricades
+                for (let i = -3; i <= 3; i++) {
+                    const rx = rbX + i * 2.0 * Math.cos(player.heading) + Math.sin(player.heading)*3;
+                    const rz = rbZ - i * 2.0 * Math.sin(player.heading) + Math.cos(player.heading)*3;
+                    const cone = createTrafficCone(rx, rz);
+                    scene.add(cone);
+                    this.roadblockCones.push(cone);
+                }
+            }
+            
+            if (this.roadblockActive) {
+                let smashed = false;
+                for (let i = 0; i < this.roadblockCruisers.length; i++) {
+                    const rc = this.roadblockCruisers[i];
+                    rc.mesh.position.add(rc.vel); // Apply any existing velocity
+                    rc.vel.multiplyScalar(0.9); // friction
+                    const dist = Math.hypot(player.x - rc.mesh.position.x, player.z - rc.mesh.position.z);
+                    const speedKmh = Math.abs(player.speed) * 15;
+                    if (dist < 4.5 && speedKmh > 80) { // >80 KM/H
+                        smashed = true;
+                        const pushDir = new THREE.Vector3(rc.mesh.position.x - player.x, 0, rc.mesh.position.z - player.z).normalize();
+                        rc.vel.copy(pushDir.multiplyScalar(0.8));
                     }
                 }
-            });
+                
+                if (smashed) {
+                    sound.playThud();
+                    if (typeof triggerPlayerImpact === 'function') triggerPlayerImpact(0.8);
+                    if (typeof comboManager !== 'undefined') comboManager.addSmashBonus('ROADBLOCK BUSTER +1500 PTS');
+                    player.score = (player.score || 0) + 1500;
+                    
+                    // Scatter cones
+                    this.roadblockCones.forEach(c => {
+                        const pushDir = new THREE.Vector3((Math.random()-0.5)*2, 0.5, (Math.random()-0.5)*2);
+                        c.vel = pushDir;
+                        c.rotVel = new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5);
+                        c.life = 1.0;
+                        if (typeof activeDebris !== 'undefined') activeDebris.push(c);
+                    });
+                    this.roadblockCones = [];
+                    this.roadblockActive = false;
+                }
+            }
         }
     }
     cleanup() {
         this.stars = 0;
+        this.roadblockCruisers.forEach(rc => { scene.remove(rc.mesh); });
+        this.roadblockCruisers = [];
+        this.roadblockCones.forEach(c => { scene.remove(c); });
+        this.roadblockCones = [];
+        this.roadblockActive = false;
         this.updateUI();
     }
 }
