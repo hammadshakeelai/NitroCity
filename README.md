@@ -6,7 +6,7 @@
   <a href="https://hammadshakeelai.github.io/NitroCity/"><img src="https://img.shields.io/badge/▶_Play_Now-ff4757?style=for-the-badge&logoColor=white" alt="Play Now"></a>
   <img src="https://img.shields.io/badge/Three.js-r128-000000?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js r128">
   <img src="https://img.shields.io/badge/build_step-none-16a34a?style=for-the-badge" alt="No build step">
-  <img src="https://img.shields.io/badge/asset_files-zero-8b5cf6?style=for-the-badge" alt="Zero asset files">
+  <img src="https://img.shields.io/badge/art_&_audio-procedural-8b5cf6?style=for-the-badge" alt="Procedural art and audio">
   <img src="https://img.shields.io/badge/PWA-offline_ready-22d3ee?style=for-the-badge" alt="PWA offline ready">
 </p>
 
@@ -28,7 +28,7 @@
 
 ## What it is
 
-NitroCity 3D is a cartoon off-road driving game built with **plain Three.js** — no engine, no bundler, no build step, and **not a single image, model or audio file**. Every car, tree, building and sound is generated at runtime, in about 7,000 lines of HTML, CSS and JavaScript. The whole game is `index.html` plus two scripts for the city, served straight off GitHub Pages.
+NitroCity 3D is a cartoon off-road driving game built with **plain Three.js** — no engine, no bundler, no build step, and **no art or audio files at all**: the game loads zero textures, models or sound files. Every car, tree, building and sound is generated at runtime, in about 7,000 lines of HTML, CSS and JavaScript. (The only binaries in this repo are the banner, screenshots and trailer on this page.) The whole game is `index.html` plus two scripts for the city, served straight off GitHub Pages.
 
 It's inspired by **Bruno Simon's 3D portfolio** and the **Kenney Car Kit** look: chunky low-poly shapes, flat pastel colours, and arcade physics that let you drift, jump and smash things.
 
@@ -126,12 +126,12 @@ A bright **820 × 820** cartoon city: 36 blocks, **114 pastel buildings**, shopf
 
 The interesting part isn't the driving, it's what had to happen to keep a 32,000-object city running on a phone in a browser tab.
 
-- **Zero external assets.** No `.png`, `.glb` or `.mp3` anywhere in the repo. Meshes are built from Three.js primitives; every engine note, tire squeal, crash and radio track is synthesized with the **Web Audio API** at runtime.
+- **Nothing to load.** The game fetches no textures, models or audio — meshes are built from Three.js primitives, and every engine note, tire squeal, crash and radio track is synthesized with the **Web Audio API** at runtime. (The `assets/` binaries are the README's media, not the game's.)
 - **Instanced, chunked city.** Toon City holds ~32,500 instanced objects across 77 chunks but only draws the ones near you: the visible scenery resolves to roughly **70–80 draw calls**, with traffic and pedestrians adding about a dozen more, and 291 collision volumes looked up by proximity instead of iterated.
 - **Delta-time normalized physics.** The driving model is frame-rate independent, so a 144 Hz desktop and a 30 fps phone drive the same.
 - **Explicit teardown.** Every world disposes its geometries, materials and instanced meshes on exit, so switching maps doesn't leak GPU memory.
 - **Distance-based detail.** Scenery, pedestrians and traffic drop detail with distance; particles are pooled and bounded.
-- **One dependency.** Three.js r128 from a CDN. That's the entire supply chain.
+- **One runtime dependency.** Three.js r128 from a CDN, precached by the service worker so the game still runs offline. The only other outside fetch is the pair of PWA install icons hotlinked from icons8 in `manifest.json`.
 
 ---
 
