@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NitroCity 3D - Forest River Playground & Circuit Racer</title>
-    <meta name="description" content="3D Cartoon Off-Road Buggy Game with Forest River Playground and Circuit Racing inspired by Bruno Simon Folio 2025.">
+    <title>NitroCity 3D - Toon City, Forest & Circuit</title>
+    <meta name="description" content="Explore a colorful cartoon city with moving traffic and people, roam the forest, or race the dusk circuit in a 3D arcade buggy.">
     <meta name="theme-color" content="#23112b">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -75,7 +75,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: safe center;
+            overflow-y: auto;
             background: radial-gradient(circle at center, rgba(55, 25, 68, 0.85) 0%, rgba(18, 8, 24, 0.96) 100%);
             z-index: 100;
             padding: 24px;
@@ -128,6 +129,21 @@
 
         .mode-card:active {
             transform: translateY(-2px);
+        }
+
+        .mode-card.toon-card { border-color: rgba(100, 229, 201, .6); background: linear-gradient(155deg, rgba(35, 92, 100, .7), rgba(38, 35, 75, .8)); }
+        .toon-card .mode-icon { font-size: 44px; }
+        .toon-card .map-tag { color: #94f5d5; font-size: 10px; letter-spacing: 2px; font-weight: 800; margin-bottom: 10px; }
+        #city-location { display: none; position: absolute; left: 24px; bottom: 190px; pointer-events: none; z-index: 10; padding: 12px 16px; max-width: 270px; }
+        #city-location small { display: block; font-size: 9px; letter-spacing: 2px; color: #a8eadc; margin-bottom: 4px; }
+        #city-district { font-size: 17px; font-weight: 800; }
+        #city-location p { font-size: 11px; color: #dcf4ed; margin-top: 5px; }
+        @media (max-width: 820px) {
+            #main-menu { padding: 20px 16px; }
+            #main-menu > * { flex-shrink: 0; }
+            #city-location { bottom: 164px; left: 12px; padding: 8px 11px; max-width: 215px; }
+            #city-district { font-size: 14px; }
+            #city-location p { font-size: 10px; }
         }
 
         .mode-icon {
@@ -191,6 +207,7 @@
         }
 
         .hud-icon-btn {
+            color: #ffffff;
             pointer-events: auto;
             width: 44px;
             height: 44px;
@@ -485,6 +502,26 @@
             #mobile-controls { display: block; }
             #minimap-container { width: 108px; height: 108px; top: 68px; right: 12px; }
         }
+        @media (pointer: coarse), (max-width: 768px) {
+            #mobile-controls { display: block; }
+            #key-guide { display: none; }
+            #game-hud { top: 9px; left: 9px; right: 9px; gap: 6px; align-items: flex-start; }
+            .hud-group { gap: 6px; }
+            .hud-icon-btn { width: 36px; height: 36px; font-size: 16px; }
+            .hud-badge { padding: 6px 9px; font-size: 11px; gap: 5px; }
+            .hud-badge span.val { font-size: 13px; }
+            .touch-btn, .btn-nitro { width: 56px; height: 56px; touch-action: none; }
+            .touch-zone-left, .touch-zone-right { gap: 8px; bottom: 18px; }
+            #city-location { bottom: 90px; left: 12px; padding: 8px 11px; }
+            #minimap-container { width: 96px; height: 96px; top: 70px; right: 12px; }
+        }
+        @media (max-width: 540px) {
+            #game-hud { flex-wrap: wrap; }
+            .hud-group { width: 100%; }
+            #minimap-container { top: 112px; }
+            .touch-zone-right { display: grid; grid-template-columns: repeat(2, 56px); }
+            #city-location { bottom: 156px; }
+        }
     </style>
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -496,7 +533,7 @@
     <!-- Main Menu -->
     <div id="main-menu">
         <h1 class="logo-title">NITROCITY 3D</h1>
-        <p class="logo-subtitle">Stylized 4x4 Off-Road Playground (Inspired by Bruno Simon's Folio 2025)</p>
+        <p class="logo-subtitle">Three worlds. One little buggy. Endless detours.</p>
 
         <div class="mode-cards-container">
             <!-- Mode 1: Forest & River Playground -->
@@ -513,6 +550,14 @@
                 <h3>Dusk Circuit Race</h3>
                 <p>Intense off-road circuit racing against 6 competitive AI rivals! Dynamic rubber-banding, solid car bumps, rumble curbs &amp; 3-lap podium.</p>
                 <button class="btn" style="width: 100%; background: linear-gradient(135deg, #ff7675, #d63031);">START RACE</button>
+            </div>
+
+            <div class="mode-card glass-panel toon-card" id="btn-mode-tooncity">
+                <span class="map-tag">NEW WORLD · 03</span>
+                <div class="mode-icon">🏙️</div>
+                <h3>Toon City</h3>
+                <p>A big, bright city with bustling streets, colorful shops, walking neighbors, leafy parks and a seaside promenade. Take the scenic route and find all 16 stars.</p>
+                <button class="btn" style="width: 100%; background: linear-gradient(135deg, #8df4bd, #39c5bf); color: #153c41;">EXPLORE TOON CITY</button>
             </div>
         </div>
 
@@ -599,6 +644,7 @@
     </div>
 
     <!-- Circular Minimap Radar HUD -->
+    <div id="city-location" class="glass-panel"><small>TOON CITY · FREE ROAM</small><div id="city-district">Welcome to the neighborhood</div><p id="city-hint">Find 16 stars · H to say hello</p></div>
     <div id="minimap-container">
         <canvas id="minimap-canvas" width="140" height="140"></canvas>
     </div>
@@ -658,6 +704,8 @@
         </div>
     </div>
 
+    <script src="assets/toon-city-world.js"></script>
+    <script src="assets/toon-city-life.js"></script>
     <script>
     /* ==========================================================================
        NITROCITY 3D - BRUNO SIMON FOLIO 2025 STYLIZED OFF-ROAD BUGGY & FOREST RIVER
@@ -1134,7 +1182,7 @@
     camera.position.set(16, 12, 16);
 
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 820;
-    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance', preserveDrawingBuffer: new URLSearchParams(location.search).get('test') === '1' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.4 : 2));
     renderer.shadowMap.enabled = true;
@@ -1392,9 +1440,14 @@
     // ==========================================================================
     const activeDebris = [];
     const debrisChunkGeo = new THREE.BoxGeometry(0.28, 0.28, 0.28);
+    const debrisMaterials = new Map();
 
     function spawnVoxelCrumbles(x, y, z, count = 12, colorHex = 0xffbe76) {
-        const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.8 });
+        const limit = graphicsQuality === 'low' ? 65 : 130;
+        count = Math.min(count, limit - activeDebris.length);
+        if (count <= 0) return;
+        if (!debrisMaterials.has(colorHex)) debrisMaterials.set(colorHex, new THREE.MeshLambertMaterial({ color: colorHex }));
+        const mat = debrisMaterials.get(colorHex);
         for (let i = 0; i < count; i++) {
             const chunk = new THREE.Mesh(debrisChunkGeo, mat);
             chunk.position.set(
@@ -1402,7 +1455,7 @@
                 y + Math.random() * 0.8,
                 z + (Math.random() - 0.5) * 0.8
             );
-            chunk.castShadow = true;
+            chunk.castShadow = false;
             chunk.vel = new THREE.Vector3(
                 (Math.random() - 0.5) * 0.35,
                 0.22 + Math.random() * 0.3,
@@ -1493,6 +1546,7 @@
             p.material.opacity = Math.max(0, p.life * 0.6);
             if (p.life <= 0.05) {
                 scene.remove(p);
+                p.material.dispose();
                 activeSmokePuffs.splice(i, 1);
             }
         }
@@ -1552,6 +1606,7 @@
         const targetOpacity = isNitro ? 0.75 : (showStreaks ? 0.4 : 0);
         windStreaks.forEach(s => {
             s.material.opacity += (targetOpacity - s.material.opacity) * 0.15;
+            s.visible = s.material.opacity > 0.02;
             if (s.material.opacity > 0.02) {
                 s.position.x -= Math.sin(player.heading) * player.speed * 1.3;
                 s.position.z -= Math.cos(player.heading) * player.speed * 1.3;
@@ -2529,7 +2584,7 @@
                     this.data.bestLap = num;
                     updated = true;
                 }
-            } else if (field === 'bestScore' || field === 'bestHighwayScore' || field === 'bestSpeedTrap' || field === 'starsCollected' || field === 'taxiCash') {
+            } else if (field === 'bestScore' || field === 'bestHighwayScore' || field === 'bestSpeedTrap' || field === 'starsCollected' || field === 'cityStarsCollected' || field === 'taxiCash') {
                 const num = Number(val);
                 if (num > (this.data[field] || 0)) {
                     this.data[field] = num;
@@ -2797,7 +2852,7 @@
             ctx.fill();
 
             // World to Radar conversion (Player-centric)
-            this.range = (currentMode === 'race') ? 180 : 100;
+            this.range = currentMode === 'race' ? 180 : currentMode === 'tooncity' ? 155 : 100;
             const scale = radius / this.range;
             const toRadar = (wx, wz) => {
                 const dx = wx - player.x;
@@ -2808,7 +2863,33 @@
                 };
             };
 
-            if (currentMode === 'forest') {
+            if (currentMode === 'tooncity' && toonCityWorld) {
+                ctx.fillStyle = '#5e8f76';
+                ctx.fillRect(0, 0, w, w);
+                ctx.fillStyle = '#516778';
+                toonCityWorld.roads.forEach(road => {
+                    const x = cx + (road - player.x) * scale;
+                    const z = cy + (road - player.z) * scale;
+                    ctx.fillRect(x - 12 * scale, 0, 24 * scale, w);
+                    ctx.fillRect(0, z - 12 * scale, w, 24 * scale);
+                });
+                ctx.fillStyle = '#87bfa5';
+                toonCityWorld.blocks.forEach(block => {
+                    if (!block.park) return;
+                    const p = toRadar(block.x, block.z);
+                    ctx.fillRect(p.x - 35 * scale, p.y - 35 * scale, 70 * scale, 70 * scale);
+                });
+                ctx.fillStyle = '#73d6e5';
+                const water = toRadar(401, 0);
+                ctx.fillRect(water.x, 0, w, w);
+                if (toonCityLife) {
+                    ctx.fillStyle = '#ffb998';
+                    toonCityLife.vehicles.forEach(car => {
+                        const p = toRadar(car.x, car.z);
+                        ctx.fillRect(p.x - 1.4, p.y - 1.4, 2.8, 2.8);
+                    });
+                }
+            } else if (currentMode === 'forest') {
                 // River Ribbon (x = -18)
                 const riverX = cx + (-18 - player.x) * scale;
                 ctx.fillStyle = 'rgba(0, 168, 255, 0.45)';
@@ -2993,6 +3074,14 @@
     // ==========================================================================
     let currentMode = null;
     let isPaused = false;
+    let toonCityWorld = null;
+    let toonCityLife = null;
+    let cityCollisionGrid = null;
+    let cityLightingRestore = null;
+    let graphicsQuality = 'high';
+    let raceCountdownInterval = null;
+    let minimapElapsed = 0;
+    let cityHudElapsed = 0;
     let activeWorldObjects = [];
     let activeColliders = [];
     let interactiveCrates = [];
@@ -3107,10 +3196,15 @@
         if (e.code === 'KeyQ') if (window.bgm) window.bgm.nextStation();
         if (e.code === 'KeyH') {
             sound.playCarHorn();
+            if (toonCityLife) toonCityLife.honk(player);
             if (typeof sysTraffic !== 'undefined' && player) sysTraffic.honkHorn(player);
         }
         if (e.code === 'Escape') returnToMenu();
-        if (e.code === 'KeyP') {
+        if (e.code === 'KeyF' && !e.repeat) {
+            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            else document.documentElement.requestFullscreen().catch(() => {});
+        }
+        if (e.code === 'KeyP' && currentMode && !e.repeat) {
             isPaused = !isPaused;
             const overlay = document.getElementById('pause-overlay');
             if (overlay) overlay.style.display = isPaused ? 'flex' : 'none';
@@ -3184,11 +3278,13 @@
     // UI Buttons
     document.getElementById('btn-mode-city').addEventListener('click', () => { sound.init(); startForestMode(); });
     document.getElementById('btn-mode-race').addEventListener('click', () => { sound.init(); startRaceMode(); });
+    document.getElementById('btn-mode-tooncity').addEventListener('click', () => { sound.init(); startToonCityMode(); });
     document.getElementById('btn-hud-menu').addEventListener('click', returnToMenu);
     document.getElementById('btn-hud-reset').addEventListener('click', resetPlayerVehicle);
     document.getElementById('btn-hud-cam').addEventListener('click', toggleCameraMode);
     document.getElementById('btn-hud-horn').addEventListener('click', () => {
         sound.playCarHorn();
+        if (toonCityLife) toonCityLife.honk(player);
         if (typeof sysTraffic !== 'undefined' && player) sysTraffic.honkHorn(player);
     });
     document.getElementById('btn-hud-sound').addEventListener('click', () => {
@@ -3197,6 +3293,8 @@
     });
 
     function setGraphicsQuality(level) {
+        graphicsQuality = ['low', 'med', 'high'].includes(level) ? level : 'med';
+        level = graphicsQuality;
         persistence.saveRecord('gfxQuality', level);
         ['low', 'med', 'high'].forEach(lvl => {
             const btn = document.getElementById('btn-gfx-' + lvl);
@@ -3213,7 +3311,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.BasicShadowMap;
         } else {
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.4 : 2.0));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         }
@@ -3316,12 +3414,60 @@
 
     document.getElementById('btn-modal-restart').addEventListener('click', () => {
         if (currentMode === 'race') startRaceMode();
+        else if (currentMode === 'tooncity') startToonCityMode();
         else startForestMode();
     });
     document.getElementById('btn-modal-menu').addEventListener('click', returnToMenu);
 
+    // Map-owned GPU resources must leave with the map, including collected props.
+    function disposeWorldObjects(objects) {
+        const geometries = new Set(), materials = new Set(), textures = new Set();
+        objects.forEach(root => {
+            scene.remove(root);
+            root.traverse(obj => {
+                if (obj.geometry) geometries.add(obj.geometry);
+                if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));
+            });
+        });
+        materials.forEach(m => {
+            Object.values(m).forEach(value => { if (value && value.isTexture) textures.add(value); });
+            m.dispose();
+        });
+        textures.forEach(t => t.dispose());
+        geometries.forEach(g => g.dispose());
+    }
+
     function clearWorld() {
-        activeWorldObjects.forEach(obj => scene.remove(obj));
+        if (raceCountdownInterval !== null) clearInterval(raceCountdownInterval);
+        raceCountdownInterval = null;
+        document.getElementById('countdown-banner').style.display = 'none';
+        document.getElementById('countdown-banner').style.color = '#ffbe76';
+        document.getElementById('pause-overlay').style.display = 'none';
+        document.getElementById('city-location').style.display = 'none';
+        isPaused = false;
+        Object.keys(keys).forEach(key => { keys[key] = false; });
+        if (toonCityLife) { scene.remove(toonCityLife.root); toonCityLife.dispose(); toonCityLife = null; }
+        if (toonCityWorld) { scene.remove(toonCityWorld.root); toonCityWorld.dispose(); toonCityWorld = null; }
+        cityCollisionGrid = null;
+        if (cityLightingRestore) {
+            scene.background.copy(cityLightingRestore.bg);
+            scene.fog = cityLightingRestore.fog;
+            ambientLight.color.copy(cityLightingRestore.ambientColor);
+            ambientLight.intensity = cityLightingRestore.ambientIntensity;
+            sunLight.color.copy(cityLightingRestore.sunColor);
+            sunLight.intensity = cityLightingRestore.sunIntensity;
+            sunLight.position.copy(cityLightingRestore.sunPosition);
+            sunLight.target.position.set(0, 0, 0);
+            hemiLight.color.copy(cityLightingRestore.hemiColor);
+            hemiLight.groundColor.copy(cityLightingRestore.groundColor);
+            hemiLight.intensity = cityLightingRestore.hemiIntensity;
+            renderer.toneMappingExposure = cityLightingRestore.exposure;
+            currentTodIdx = cityLightingRestore.tod;
+            document.getElementById('btn-hud-tod').innerText = cityLightingRestore.todIcon;
+            sysRain.setRain(cityLightingRestore.rain);
+            cityLightingRestore = null;
+        }
+        disposeWorldObjects(activeWorldObjects);
         activeWorldObjects = [];
         activeColliders = [];
         interactiveCrates = [];
@@ -3331,10 +3477,18 @@
         boostPads = [];
         stuntRings = [];
         drivableSurfaces = [];
-        aiCars.forEach(ai => scene.remove(ai.mesh));
+        disposeWorldObjects(aiCars.map(ai => ai.mesh));
         aiCars = [];
         activeDebris.forEach(d => scene.remove(d));
         activeDebris.length = 0;
+        activeSmokePuffs.forEach(p => { scene.remove(p); p.material.dispose(); });
+        activeSmokePuffs.length = 0;
+        skidMarkPool.forEach(s => { s.visible = false; });
+        windStreaks.forEach(s => { s.material.opacity = 0; s.visible = false; });
+        window.speedTraps = [];
+        player.nitroFuel = 100;
+        minimapElapsed = 1;
+        cityHudElapsed = 1;
         
         if (typeof sysTraffic !== 'undefined') sysTraffic.cleanup();
         if (typeof sysTaxi !== 'undefined') sysTaxi.cleanup();
@@ -4050,6 +4204,104 @@
     }
 
     // Mode Starters
+    function startToonCityMode() {
+        clearWorld();
+        currentMode = 'tooncity';
+        cityLightingRestore = {
+            bg: scene.background.clone(), fog: scene.fog.clone(),
+            ambientColor: ambientLight.color.clone(), ambientIntensity: ambientLight.intensity,
+            sunColor: sunLight.color.clone(), sunIntensity: sunLight.intensity, sunPosition: sunLight.position.clone(),
+            hemiColor: hemiLight.color.clone(), groundColor: hemiLight.groundColor.clone(), hemiIntensity: hemiLight.intensity,
+            exposure: renderer.toneMappingExposure, tod: currentTodIdx, rain: sysRain.enabled,
+            todIcon: document.getElementById('btn-hud-tod').innerText
+        };
+        scene.background = new THREE.Color(0x9bdbe8);
+        scene.fog = new THREE.FogExp2(0xb5e3e8, 0.0028);
+        ambientLight.color.setHex(0xffffff);
+        ambientLight.intensity = 0.45;
+        sunLight.color.setHex(0xffecc9);
+        sunLight.intensity = 1.05;
+        hemiLight.color.setHex(0xc8efff);
+        hemiLight.groundColor.setHex(0x8dab81);
+        hemiLight.intensity = 0.4;
+        renderer.toneMappingExposure = 0.95;
+        currentTodIdx = 3;
+        document.getElementById('btn-hud-tod').innerText = '☀️';
+        sysRain.setRain(false);
+        if (!sunLight.target.parent) scene.add(sunLight.target);
+
+        toonCityWorld = window.createToonCityWorld(THREE, scene);
+        scene.add(toonCityWorld.root);
+        activeColliders = toonCityWorld.colliders;
+        buildCityCollisionGrid();
+        toonCityLife = window.createToonCityLife(THREE, scene, toonCityWorld, graphicsQuality);
+        scene.add(toonCityLife.root);
+        collectedStarCount = 0;
+        smashedPropCount = 0;
+        toonCityWorld.starPositions.forEach(pos => {
+            const star = createCollectibleStar(pos.x, pos.y, pos.z);
+            scene.add(star);
+            activeWorldObjects.push(star);
+            collectibleStars.push(star);
+        });
+        updateStarsUI();
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
+        document.getElementById('game-hud').style.display = 'flex';
+        document.getElementById('hud-city-stars').style.display = 'flex';
+        ['hud-city-smashed', 'hud-race-pos', 'hud-race-lap', 'hud-race-time', 'hud-highway-timer', 'hud-highway-gates'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        document.getElementById('city-location').style.display = 'block';
+        document.getElementById('city-hint').innerText = 'Find 16 stars · H to say hello';
+        document.getElementById('minimap-container').style.display = 'block';
+        minimapRadar.init();
+        comboManager.reset();
+        cameraModeIndex = 0;
+        cameraZoom = 1;
+        document.getElementById('btn-hud-cam').innerText = '🏎️';
+        const spawn = toonCityWorld.spawn;
+        player.reset(spawn.x, spawn.y, spawn.z, spawn.heading);
+        toonCityWorld.update(player, graphicsQuality, camera);
+        toonCityLife.update(0, player, graphicsQuality);
+        updateCityDistrict();
+        sound.init();
+        bgm.start();
+    }
+
+    function buildCityCollisionGrid() {
+        cityCollisionGrid = new Map();
+        const size = 32;
+        activeColliders.forEach(c => {
+            const hx = (c.isBox ? c.boxHalfX : c.colliderRadius || 3) + 3;
+            const hz = (c.isBox ? c.boxHalfZ : c.colliderRadius || 3) + 3;
+            for (let x = Math.floor((c.position.x - hx) / size); x <= Math.floor((c.position.x + hx) / size); x++) {
+                for (let z = Math.floor((c.position.z - hz) / size); z <= Math.floor((c.position.z + hz) / size); z++) {
+                    const key = x + ',' + z;
+                    if (!cityCollisionGrid.has(key)) cityCollisionGrid.set(key, []);
+                    cityCollisionGrid.get(key).push(c);
+                }
+            }
+        });
+    }
+
+    const emptyColliderList = [];
+    function nearbyColliders() {
+        return cityCollisionGrid ? cityCollisionGrid.get(Math.floor(player.x / 32) + ',' + Math.floor(player.z / 32)) || emptyColliderList : activeColliders;
+    }
+
+    function updateCityDistrict() {
+        if (!toonCityWorld) return;
+        let closest = null, nearest = Infinity;
+        toonCityWorld.landmarks.forEach(place => {
+            const d = (place.x - player.x) ** 2 + (place.z - player.z) ** 2;
+            if (d < nearest) { nearest = d; closest = place; }
+        });
+        const name = closest ? closest.name : 'Toon City';
+        const label = document.getElementById('city-district');
+        if (label.innerText !== name) label.innerText = name;
+    }
+
     function startForestMode() {
         currentMode = 'forest';
         document.getElementById('main-menu').style.display = 'none';
@@ -4118,7 +4370,17 @@
 
     function resetPlayerVehicle() {
         sound.playThud();
-        if (currentMode === 'forest') {
+        if (currentMode === 'tooncity' && toonCityWorld) {
+            // Return to the nearest street, including when wedged behind a building.
+            let closest = toonCityWorld.roads[0], axis = 'x', distance = Infinity;
+            toonCityWorld.roads.forEach(road => {
+                if (Math.abs(player.x - road) < distance) { distance = Math.abs(player.x - road); closest = road; axis = 'x'; }
+                if (Math.abs(player.z - road) < distance) { distance = Math.abs(player.z - road); closest = road; axis = 'z'; }
+            });
+            const limit = toonCityWorld.roads[toonCityWorld.roads.length - 1];
+            player.reset(axis === 'x' ? closest + 5 : THREE.MathUtils.clamp(player.x, -limit, limit), 0,
+                axis === 'z' ? closest + 5 : THREE.MathUtils.clamp(player.z, -limit, limit), axis === 'x' ? 0 : Math.PI / 2);
+        } else if (currentMode === 'forest') {
             player.reset(player.x, 0.6, player.z, player.heading);
         } else if (currentMode === 'race' && raceWaypoints.length > 0) {
             let closestWp = raceWaypoints[0];
@@ -4136,7 +4398,7 @@
     }
 
     function updateStarsUI() {
-        document.getElementById('val-stars').innerText = `${collectedStarCount}/10`;
+        document.getElementById('val-stars').innerText = `${collectedStarCount}/${currentMode === 'tooncity' ? 16 : 10}`;
     }
 
     function updateSmashedUI() {
@@ -4154,7 +4416,8 @@
         sound.playCountdown(false);
 
         let count = 3;
-        const interval = setInterval(() => {
+        raceCountdownInterval = setInterval(() => {
+            if (isPaused) return;
             count--;
             if (count > 0) {
                 banner.innerText = count.toString();
@@ -4167,7 +4430,8 @@
                 raceStartTime = performance.now();
                 currentLapStartTime = raceStartTime;
             } else {
-                clearInterval(interval);
+                clearInterval(raceCountdownInterval);
+                raceCountdownInterval = null;
                 banner.style.display = 'none';
                 banner.style.color = '#ffbe76';
             }
@@ -5119,7 +5383,7 @@ function updatePlayer(dt) {
         player.z -= Math.cos(player.heading) * player.speed * k;
 
         // River Splash Detection (not while crossing on a bridge deck)
-        if (Math.abs(player.x - (-18)) < 8 && Math.abs(player.speed) > 0.4
+        if (currentMode === 'forest' && Math.abs(player.x - (-18)) < 8 && Math.abs(player.speed) > 0.4
             && player.isGrounded && player.y < 0.3) {
             if (Math.random() < 0.15) sound.playSplash();
         }
@@ -5157,7 +5421,7 @@ function updatePlayer(dt) {
         }
 
         // Ramp Launch Collision with Directional Gating
-        activeColliders.forEach(c => {
+        nearbyColliders().forEach(c => {
             if (c.isRamp) {
                 const dx = player.x - c.position.x;
                 const dz = player.z - c.position.z;
@@ -5437,7 +5701,11 @@ function updatePlayer(dt) {
                     updateStarsUI();
                     sound.playStarPickup();
                     comboManager.triggerStunt('GOLDEN STAR! ⭐', 1000);
-                    persistence.saveRecord('starsCollected', collectedStarCount);
+                    persistence.saveRecord(currentMode === 'tooncity' ? 'cityStarsCollected' : 'starsCollected', collectedStarCount);
+                    if (currentMode === 'tooncity' && collectedStarCount === collectibleStars.length) {
+                        comboManager.triggerStunt('CITY EXPLORER! ⭐', 5000);
+                        document.getElementById('city-hint').innerText = 'All 16 stars found! Keep cruising.';
+                    }
                 }
             }
         });
@@ -5472,6 +5740,16 @@ function updatePlayer(dt) {
             if (Math.random() < 0.1) sound.playDrift();
         }
 
+        if (toonCityWorld) {
+            const bound = toonCityWorld.bounds - 3;
+            const x = THREE.MathUtils.clamp(player.x, -bound, bound);
+            const z = THREE.MathUtils.clamp(player.z, -bound, bound);
+            if (x !== player.x || z !== player.z) player.speed *= -0.2;
+            player.x = x; player.z = z;
+            if (toonCityLife && toonCityLife.resolvePlayer(player)) {
+                triggerPlayerImpact(0.18);
+            }
+        }
         player.mesh.position.set(player.x, player.y, player.z);
         player.mesh.rotation.set(player.pitch, player.heading, player.roll);
 
@@ -5720,16 +5998,16 @@ function updatePlayer(dt) {
         camera.lookAt(smoothCamLook);
     }
 
-    // Main Animate Loop
-    function animate() {
-        requestAnimationFrame(animate);
-
-        const now = performance.now();
-        const dt = (now - lastTime) / 1000;
-        lastTime = now;
-
+    // One 60 Hz simulation for browser frames and deterministic gameplay checks.
+    // Catch-up is capped so returning to a background tab never launches the car.
+    let simulationTime = 0;
+    let frameAccumulator = 0;
+    let manualTime = new URLSearchParams(location.search).get('test') === '1';
+    function stepGame(dt) {
         if (isPaused) return;
-
+        simulationTime += dt;
+        const now = simulationTime * 1000;
+        if (toonCityLife) toonCityLife.update(dt, player, graphicsQuality);
         updatePlayer(dt);
         updateCrates();
         updateDebris();
@@ -5739,8 +6017,21 @@ function updatePlayer(dt) {
 
         if (currentMode) {
             comboManager.update(dt, player, keys);
-            minimapRadar.render(player, aiCars, currentMode, raceWaypoints, collectibleStars, boostPads, stuntRings);
+            minimapElapsed += dt;
+            if (minimapElapsed >= 0.08) {
+                minimapRadar.render(player, aiCars, currentMode, raceWaypoints, collectibleStars, boostPads, stuntRings);
+                minimapElapsed = 0;
+            }
             bgm.updateSpeedModulation(Math.abs(player.speed) / player.baseMaxSpeed, keys.nitro && player.nitroFuel > 0);
+        }
+
+        if (toonCityWorld) {
+            toonCityWorld.update(player, graphicsQuality, camera);
+            sunLight.position.set(player.x + 70, 85, player.z + 45);
+            sunLight.target.position.set(player.x, 0, player.z);
+            sunLight.target.updateMatrixWorld();
+            cityHudElapsed += dt;
+            if (cityHudElapsed >= 0.4) { updateCityDistrict(); cityHudElapsed = 0; }
         }
 
         activeTrees.forEach(t => {
@@ -5760,13 +6051,51 @@ function updatePlayer(dt) {
             if (!star.collected) star.rotation.y += 0.035;
         });
 
-        renderer.render(scene, camera);
     }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const now = performance.now();
+        if (!manualTime) {
+            frameAccumulator += Math.min((now - lastTime) / 1000, 0.1);
+            while (frameAccumulator >= 1 / 60) {
+                stepGame(1 / 60);
+                frameAccumulator -= 1 / 60;
+            }
+        }
+        lastTime = now;
+        if (!manualTime) renderer.render(scene, camera);
+    }
+
+    window.advanceTime = function (ms) {
+        manualTime = true;
+        const steps = Math.max(0, Math.round(Math.min(Math.max(Number(ms) || 0, 0), 30000) / (1000 / 60)));
+        for (let i = 0; i < steps; i++) stepGame(1 / 60);
+        renderer.render(scene, camera);
+    };
+    window.render_game_to_text = function () {
+        const rounded = n => Math.round(n * 100) / 100;
+        const nearby = (x, z) => Math.abs(x - player.x) < 100 && Math.abs(z - player.z) < 100;
+        return JSON.stringify({
+            mode: currentMode || 'menu', paused: isPaused,
+            coordinates: 'X east, Z south, Y up; heading 0 drives north (-Z). Units approximate meters.',
+            player: { x: rounded(player.x), y: rounded(player.y), z: rounded(player.z), heading: rounded(player.heading), speedKmh: Math.round(Math.abs(player.speed) * 110), nitro: rounded(player.nitroFuel), grounded: player.isGrounded },
+            camera: CAMERA_MODES[cameraModeIndex], graphics: graphicsQuality,
+            stars: { found: collectedStarCount, total: collectibleStars.length, nearby: collectibleStars.filter(s => !s.collected && nearby(s.position.x, s.position.z)).map(s => ({ x: s.position.x, y: s.position.y, z: s.position.z })) },
+            score: comboManager.totalScore + comboManager.comboScore,
+            race: currentMode === 'race' ? { state: raceState, lap: raceLaps, laps: TOTAL_RACE_LAPS } : null,
+            city: toonCityWorld ? { bounds: toonCityWorld.bounds, district: document.getElementById('city-district').innerText, ...toonCityWorld.stats,
+                traffic: toonCityLife.vehicles.filter(v => nearby(v.x, v.z)).map(v => ({ x: rounded(v.x), z: rounded(v.z), heading: rounded(v.heading), speed: rounded(v.speed) })),
+                pedestrians: toonCityLife.pedestrians.filter(p => nearby(p.x, p.z)).map(p => ({ x: rounded(p.x), z: rounded(p.z) })), life: toonCityLife.stats } : null,
+            rendering: { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures }
+        });
+    };
 
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.render(scene, camera);
     });
 
     // Setup Garage Color Swatches Interaction
@@ -5795,13 +6124,15 @@ function updatePlayer(dt) {
 
     // Initialize Saved Graphics Quality
     if (typeof setGraphicsQuality === 'function') {
-        setGraphicsQuality(persistence.getRecord('gfxQuality') || 'high');
+        setGraphicsQuality(persistence.getRecord('gfxQuality') || (isMobile ? 'med' : 'high'));
     }
 
     const urlParams = new URLSearchParams(window.location.search);
     const modeParam = urlParams.get('mode');
     if (modeParam === 'forest' || modeParam === 'city') {
         setTimeout(startForestMode, 100);
+    } else if (modeParam === 'tooncity' || modeParam === 'town') {
+        setTimeout(startToonCityMode, 100);
     } else if (urlParams.get('mode') === 'highway') {
     } else if (urlParams.get('mode') === 'race') {
         setTimeout(startRaceMode, 100);
