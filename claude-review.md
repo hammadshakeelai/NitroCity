@@ -5,6 +5,32 @@
 
 ---
 
+## Status as of `1a78732`
+
+Most of this review has been implemented. Current state of each item:
+
+| Item | Status |
+| :--- | :--- |
+| 1. Frame-rate dependent physics | ✅ Fixed — `k = min(dt*60, 2)` applied throughout |
+| 2. Collisions fully reverse you | ✅ Fixed — deflects along the surface; full rebound only head-on |
+| 2b. Radial ramp trigger | ✅ Fixed — gated on approach angle (`abs(a) < 0.95`) |
+| 3. Foliage draw calls | ⚠️ **Open** — no instancing yet; mitigated by the LOW/MED/HIGH quality selector |
+| 3b. O(n) collision loops | ✅ Fixed — bounding-box early-outs added |
+| 4. AI on rails / non-solid | ✅ Fixed — rubber-banding + car-to-car collision |
+| 5. Lap cutting | ✅ Fixed — 4-sector checkpoint validation |
+| 6. Nitro regen while parked | ✅ Fixed — gated on `speed > 0.15` |
+| 6b. FOV with speed, engine note, pause | ✅ Added |
+
+**Found and fixed after the original review:**
+
+- **Bridges were undrivable, two causes.** `createWoodBridge` builds its deck along local Z, but the river also runs along Z — both bridges ran *parallel* to the water. And the physics hard-clamped `player.y = 0`, so there was no notion of an elevated surface at all. Now yawed 90° and supported by `drivableSurfaces` / `surfaceHeightAt()`.
+- **Solid structures were never registered.** `activeColliders` held only rocks and ramps, so watchtowers, tents and docks were drive-through. Added `registerSolidRound` / `registerSolidBox` plus an AABB branch for rectangular props.
+- **Police heat fired in the forest.** The free-roam mode was still internally named `'city'`, so `triggerPlayerImpact` (0.85 on tree hits) tripped `sysPolice.addHeat`. Mode renamed to `'forest'`, which also makes the surviving `!== 'city'` guards work.
+- **Grandstand colliders blocked the racing line** (clearance −3.6 to −6.5 against `circuitTrackPoints`). Reverted to decorative.
+- **The service worker froze players on stale builds.** Cache-first on `index.html` with a hand-bumped cache name meant returning players never saw updates. Now network-first for the game, cache-first only for the pinned CDN.
+
+---
+
 ## Verdict
 
 The content is genuinely strong. There is more *stuff* here — destructible crates, stunt rings, boost pads, combo scoring, a garage, a minimap, persistence, procedural audio — than most browser car demos ever get. The world looks good and the dusk-purple/turquoise palette is distinctive.
