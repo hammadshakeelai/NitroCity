@@ -102,17 +102,17 @@
 
         .mode-cards-container {
             display: flex;
-            gap: 24px;
-            max-width: 840px;
+            gap: 20px;
+            max-width: 1100px;
             width: 100%;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .mode-card {
-            flex: 1 1 320px;
-            max-width: 380px;
-            padding: 30px 26px;
+            flex: 1 1 290px;
+            max-width: 340px;
+            padding: 26px 22px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -502,27 +502,31 @@
             <!-- Mode 1: Metropolis Open World -->
             <div class="mode-card glass-panel" id="btn-mode-city">
                 <div class="mode-icon">🏙️</div>
-                <h3>Metropolis Open World</h3>
-                <p>Explore a multi-kilometer city! Drive through the Downtown Skyscraper District, cross the Grand Suspension Bridge, and jump off containers in the Industrial Harbor.</p>
+                <h3>Metropolis City</h3>
+                <p>Cruise a massive multi-kilometer metropolis! Downtown skyscrapers, suspension bridge, cargo harbor, crazy taxi fares & police chases.</p>
                 <button class="btn" style="width: 100%;">EXPLORE CITY</button>
             </div>
-                <h3>Forest & River Playground</h3>
-                <p>Blast through a lush pine & autumn forest with a sparkling river, cross wooden bridges, splash through water, launch off massive river ramps, smash destructible crates, and collect 10 golden stars.</p>
-                <button class="btn" style="width: 100%;">EXPLORE FOREST</button>
+
+            <!-- Mode 2: Highway Rush -->
+            <div class="mode-card glass-panel" id="btn-mode-highway">
+                <div class="mode-icon">⚡</div>
+                <h3>Highway Rush</h3>
+                <p>High-speed expressway & bridge time attack! Dodge oncoming traffic, score +250 near-miss combos, and hit neon gates before time expires.</p>
+                <button class="btn" style="width: 100%; background: linear-gradient(135deg, #00cec9, #0984e3);">RUSH HIGHWAY</button>
             </div>
 
-            <!-- Mode 2: Dusk Circuit Race -->
+            <!-- Mode 3: Dusk Circuit Race -->
             <div class="mode-card glass-panel" id="btn-mode-race">
                 <div class="mode-icon">🏁</div>
-                <h3>Dusk Circuit Race</h3>
-                <p>High-speed off-road circuit racing against 2 AI rivals! 3-2-1-GO countdown, nitro boost drafting, rumble curbs, and a 3-lap championship podium.</p>
+                <h3>Circuit Grand Prix</h3>
+                <p>Intense off-road circuit racing against 6 competitive AI rivals! Dynamic rubber-banding, solid car bumps, rumble curbs & 3-lap podium.</p>
                 <button class="btn" style="width: 100%; background: linear-gradient(135deg, #ff7675, #d63031);">START RACE</button>
             </div>
         </div>
 
         <!-- Garage Customizer -->
-        <div id="garage-section" class="glass-panel" style="margin-top: 22px; padding: 12px 24px; display: flex; align-items: center; gap: 16px; border-radius: 14px; flex-wrap: wrap; justify-content: center;">
-            <span style="font-weight: bold; font-size: 14px; color: #ffeaa7;">🎨 VEHICLE GARAGE:</span>
+        <div id="garage-section" class="glass-panel" style="margin-top: 18px; padding: 10px 22px; display: flex; align-items: center; gap: 16px; border-radius: 14px; flex-wrap: wrap; justify-content: center;">
+            <span style="font-weight: bold; font-size: 13px; color: #ffeaa7;">🎨 VEHICLE GARAGE:</span>
             <div id="color-swatches" style="display: flex; gap: 10px;">
                 <div class="color-swatch active" data-color="0xb32626" style="background: #b32626;" title="Crimson Flame"></div>
                 <div class="color-swatch" data-color="0x00cec9" style="background: #00cec9;" title="Cyber Cyan"></div>
@@ -533,11 +537,21 @@
             </div>
         </div>
 
+        <!-- Graphics Quality Setting -->
+        <div id="graphics-section" class="glass-panel" style="margin-top: 10px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; border-radius: 12px; font-size: 13px; justify-content: center; flex-wrap: wrap;">
+            <span style="color: #74b9ff; font-weight: bold;">⚡ GRAPHICS QUALITY:</span>
+            <button id="btn-gfx-low" class="hud-icon-btn glass-panel" style="padding: 4px 12px; width: auto; height: 30px; font-size: 12px; border-radius: 8px;">LOW</button>
+            <button id="btn-gfx-med" class="hud-icon-btn glass-panel" style="padding: 4px 12px; width: auto; height: 30px; font-size: 12px; border-radius: 8px;">MED</button>
+            <button id="btn-gfx-high" class="hud-icon-btn glass-panel active" style="padding: 4px 12px; width: auto; height: 30px; font-size: 12px; border-radius: 8px; border-color: #00cec9;">HIGH</button>
+        </div>
+
         <!-- Personal Records & Achievements Banner -->
-        <div id="menu-records" class="glass-panel" style="margin-top: 14px; padding: 10px 22px; font-size: 13px; color: #dfe6e9; display: flex; gap: 18px; border-radius: 12px; flex-wrap: wrap; justify-content: center;">
-            <span>🏆 Best Circuit Lap: <strong id="rec-best-lap" style="color: #ffbe76;">--:--.-</strong></span>
-            <span>🏅 High Stunt Score: <strong id="rec-best-score" style="color: #ffbe76;">0</strong></span>
-            <span>⭐ Stars Found: <strong id="rec-stars" style="color: #ffbe76;">0/10</strong></span>
+        <div id="menu-records" class="glass-panel" style="margin-top: 10px; padding: 8px 20px; font-size: 12px; color: #dfe6e9; display: flex; gap: 16px; border-radius: 12px; flex-wrap: wrap; justify-content: center;">
+            <span>🏆 Best Lap: <strong id="rec-best-lap" style="color: #ffbe76;">--:--.-</strong></span>
+            <span>🏅 High Stunt: <strong id="rec-best-score" style="color: #ffbe76;">0</strong></span>
+            <span>⭐ Stars: <strong id="rec-stars" style="color: #ffbe76;">0/10</strong></span>
+            <span>⚡ Highway Rush: <strong id="rec-highway" style="color: #00cec9;">0 PTS</strong></span>
+            <span>📸 Top Speed: <strong id="rec-trap" style="color: #ff7675;">0 KM/H</strong></span>
         </div>
 
         <div class="menu-footer">
@@ -575,6 +589,12 @@
             </div>
             <div id="hud-race-time" class="hud-badge glass-panel" style="display: none;">
                 ⏱️ <span id="val-time" class="val">00:00.0</span>
+            </div>
+            <div id="hud-highway-timer" class="hud-badge glass-panel" style="display: none; color: #00cec9; font-weight: 800;">
+                ⏳ <span id="val-highway-timer" class="val">40.0s</span>
+            </div>
+            <div id="hud-highway-gates" class="hud-badge glass-panel" style="display: none; color: #ffeaa7; font-weight: 800;">
+                ⚡ GATES: <span id="val-highway-gates" class="val">0/6</span>
             </div>
 
             <!-- Nitro Gauge -->
@@ -2461,6 +2481,10 @@
             } catch (e) {}
         }
 
+        getRecord(field) {
+            return this.data[field];
+        }
+
         saveRecord(field, val) {
             let updated = false;
             if (field === 'bestLap') {
@@ -2469,18 +2493,15 @@
                     this.data.bestLap = num;
                     updated = true;
                 }
-            } else if (field === 'bestScore') {
-                const num = Math.round(val);
-                if (num > (this.data.bestScore || 0)) {
-                    this.data.bestScore = num;
-                    updated = true;
-                }
-            } else if (field === 'starsCollected') {
+            } else if (field === 'bestScore' || field === 'bestHighwayScore' || field === 'bestSpeedTrap' || field === 'starsCollected' || field === 'taxiCash') {
                 const num = Number(val);
-                if (num > (this.data.starsCollected || 0)) {
-                    this.data.starsCollected = num;
+                if (num > (this.data[field] || 0)) {
+                    this.data[field] = num;
                     updated = true;
                 }
+            } else {
+                this.data[field] = val;
+                updated = true;
             }
             if (updated) {
                 this.save();
@@ -2498,6 +2519,8 @@
             const lapEl = document.getElementById('rec-best-lap');
             const scoreEl = document.getElementById('rec-best-score');
             const starEl = document.getElementById('rec-stars');
+            const highwayEl = document.getElementById('rec-highway');
+            const trapEl = document.getElementById('rec-trap');
             if (lapEl) {
                 lapEl.innerText = (this.data.bestLap && this.data.bestLap < 999) ? `${this.data.bestLap.toFixed(2)}s` : '--:--.-';
             }
@@ -2506,6 +2529,12 @@
             }
             if (starEl) {
                 starEl.innerText = `${this.data.starsCollected || 0}/10`;
+            }
+            if (highwayEl) {
+                highwayEl.innerText = `${(this.data.bestHighwayScore || 0).toLocaleString()} PTS`;
+            }
+            if (trapEl) {
+                trapEl.innerText = `${this.data.bestSpeedTrap || 0} KM/H`;
             }
         }
     }
@@ -2796,6 +2825,25 @@
                         ctx.fillText(sysTaxi.activeJob ? 'DROP' : 'TAXI', finalP.x, finalP.y - 8);
                     }
                 }
+            } else if (currentMode === 'highway' && window.sysHighway && sysHighway.active) {
+                // Highway Checkpoint Gates on Radar
+                sysHighway.gates.forEach((gate, gIdx) => {
+                    if (gIdx >= sysHighway.currentGate) {
+                        const gp = toRadar(gate.x, gate.z);
+                        ctx.fillStyle = gIdx === sysHighway.currentGate ? '#00ff88' : '#00cec9';
+                        ctx.beginPath();
+                        ctx.arc(gp.x, gp.y, gIdx === sysHighway.currentGate ? 5 : 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        if (gIdx === sysHighway.currentGate) {
+                            ctx.fillStyle = '#00ff88';
+                            ctx.font = 'bold 8px sans-serif';
+                            ctx.fillText('GATE ' + (gIdx + 1), gp.x, gp.y - 7);
+                        }
+                    }
+                });
             } else if (currentMode === 'race' && raceWaypoints && raceWaypoints.length > 0) {
                 // Race Track Ribbon Loop
                 ctx.strokeStyle = 'rgba(255, 118, 117, 0.75)';
@@ -3081,6 +3129,7 @@
 
     // UI Buttons
     document.getElementById('btn-mode-city').addEventListener('click', () => { sound.init(); startCityMode(); });
+    document.getElementById('btn-mode-highway').addEventListener('click', () => { sound.init(); startHighwayRushMode(); });
     document.getElementById('btn-mode-race').addEventListener('click', () => { sound.init(); startRaceMode(); });
     document.getElementById('btn-hud-menu').addEventListener('click', returnToMenu);
     document.getElementById('btn-hud-reset').addEventListener('click', resetPlayerVehicle);
@@ -3093,6 +3142,35 @@
         const muted = sound.toggleMute();
         document.getElementById('btn-hud-sound').innerText = muted ? '🔇' : '🔊';
     });
+
+    function setGraphicsQuality(level) {
+        persistence.saveRecord('gfxQuality', level);
+        ['low', 'med', 'high'].forEach(lvl => {
+            const btn = document.getElementById('btn-gfx-' + lvl);
+            if (btn) {
+                btn.classList.toggle('active', lvl === level);
+                btn.style.borderColor = (lvl === level) ? '#00cec9' : 'rgba(255, 180, 150, 0.25)';
+            }
+        });
+        if (level === 'low') {
+            renderer.setPixelRatio(1.0);
+            renderer.shadowMap.enabled = false;
+        } else if (level === 'med') {
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.BasicShadowMap;
+        } else {
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        }
+    }
+    const btnLow = document.getElementById('btn-gfx-low');
+    const btnMed = document.getElementById('btn-gfx-med');
+    const btnHigh = document.getElementById('btn-gfx-high');
+    if (btnLow) btnLow.addEventListener('click', () => setGraphicsQuality('low'));
+    if (btnMed) btnMed.addEventListener('click', () => setGraphicsQuality('med'));
+    if (btnHigh) btnHigh.addEventListener('click', () => setGraphicsQuality('high'));
 
     let currentTodIdx = 0;
     const todPresets = [
@@ -3126,6 +3204,7 @@
 
     document.getElementById('btn-modal-restart').addEventListener('click', () => {
         if (currentMode === 'race') startRaceMode();
+        else if (currentMode === 'highway') startHighwayRushMode();
         else startCityMode();
     });
     document.getElementById('btn-modal-menu').addEventListener('click', returnToMenu);
@@ -3148,6 +3227,7 @@
         if (typeof sysTraffic !== 'undefined') sysTraffic.cleanup();
         if (typeof sysTaxi !== 'undefined') sysTaxi.cleanup();
         if (typeof sysPolice !== 'undefined') sysPolice.cleanup();
+        if (typeof sysHighway !== 'undefined') sysHighway.cleanup();
     }
 
     // ==========================================================================
@@ -3860,15 +3940,44 @@
         document.getElementById('hud-race-pos').style.display = 'none';
         document.getElementById('hud-race-lap').style.display = 'none';
         document.getElementById('hud-race-time').style.display = 'none';
+        const hTimer = document.getElementById('hud-highway-timer');
+        const hGates = document.getElementById('hud-highway-gates');
+        if (hTimer) hTimer.style.display = 'none';
+        if (hGates) hGates.style.display = 'none';
         document.getElementById('minimap-container').style.display = 'block';
         minimapRadar.init();
         comboManager.reset();
         sound.init();
         bgm.start();
         buildForestRiverPlayground();
-    sysTraffic.init();
-    sysTaxi.init();
-    sysPolice.init();
+        sysTraffic.init();
+        sysTaxi.init();
+        sysPolice.init();
+    }
+
+    function startHighwayRushMode() {
+        currentMode = 'highway';
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('modal-overlay').style.display = 'none';
+        document.getElementById('game-hud').style.display = 'flex';
+        document.getElementById('hud-city-stars').style.display = 'none';
+        document.getElementById('hud-city-smashed').style.display = 'none';
+        document.getElementById('hud-race-pos').style.display = 'none';
+        document.getElementById('hud-race-lap').style.display = 'none';
+        document.getElementById('hud-race-time').style.display = 'none';
+        const hTimer = document.getElementById('hud-highway-timer');
+        const hGates = document.getElementById('hud-highway-gates');
+        if (hTimer) hTimer.style.display = 'flex';
+        if (hGates) hGates.style.display = 'flex';
+        document.getElementById('minimap-container').style.display = 'block';
+        minimapRadar.init();
+        comboManager.reset();
+        sound.init();
+        bgm.start();
+        buildForestRiverPlayground();
+        sysTraffic.init();
+        sysHighway.init();
+        player.reset(400, 0.6, 0, -Math.PI / 2);
     }
 
     function startRaceMode() {
@@ -3881,6 +3990,10 @@
         document.getElementById('hud-race-pos').style.display = 'flex';
         document.getElementById('hud-race-lap').style.display = 'flex';
         document.getElementById('hud-race-time').style.display = 'flex';
+        const hTimer = document.getElementById('hud-highway-timer');
+        const hGates = document.getElementById('hud-highway-gates');
+        if (hTimer) hTimer.style.display = 'none';
+        if (hGates) hGates.style.display = 'none';
         document.getElementById('minimap-container').style.display = 'block';
         minimapRadar.init();
         comboManager.reset();
@@ -3896,6 +4009,11 @@
         document.getElementById('countdown-banner').style.display = 'none';
         document.getElementById('minimap-container').style.display = 'none';
         document.getElementById('combo-container').style.display = 'none';
+        const hTimer = document.getElementById('hud-highway-timer');
+        const hGates = document.getElementById('hud-highway-gates');
+        if (hTimer) hTimer.style.display = 'none';
+        if (hGates) hGates.style.display = 'none';
+        if (typeof sysHighway !== 'undefined') sysHighway.cleanup();
         document.getElementById('main-menu').style.display = 'flex';
         comboManager.bankCombo();
         bgm.stop();
@@ -3907,7 +4025,7 @@
 
     function resetPlayerVehicle() {
         sound.playThud();
-        if (currentMode === 'city') {
+        if (currentMode === 'city' || currentMode === 'highway') {
             player.reset(player.x, 0.6, player.z, player.heading);
         } else if (currentMode === 'race' && raceWaypoints.length > 0) {
             let closestWp = raceWaypoints[0];
@@ -4572,6 +4690,138 @@ class PoliceHeatSystem {
     }
 }
 const sysPolice = new PoliceHeatSystem();
+
+// ==========================================
+// HIGHWAY RUSH TIME ATTACK & CHECKPOINT SYSTEM
+// ==========================================
+class HighwayRushSystem {
+    constructor() {
+        this.active = false;
+        this.timer = 40.0;
+        this.currentGate = 0;
+        this.gates = [
+            { x: 420, y: 0, z: 0, name: 'Expressway Entrance' },
+            { x: 500, y: 7, z: 0, name: 'Bridge Ramp' },
+            { x: 600, y: 15, z: 0, name: 'Suspension Tower' },
+            { x: 720, y: 6, z: 0, name: 'Harbor Descent' },
+            { x: 700, y: 0, z: 180, name: 'Cargo Bay Curve' },
+            { x: 550, y: 0, z: 340, name: 'Pier Finish Line' }
+        ];
+        this.gateMeshes = [];
+        this.nearMissCount = 0;
+    }
+    init() {
+        this.active = true;
+        this.timer = 40.0;
+        this.currentGate = 0;
+        this.nearMissCount = 0;
+        this.buildGates();
+        this.updateUI();
+    }
+    buildGates() {
+        this.cleanupMeshes();
+        this.gates.forEach((g, idx) => {
+            const arch = new THREE.Group();
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1e272e, metalness: 0.8, roughness: 0.2 });
+            const neonMat = new THREE.MeshBasicMaterial({ color: idx === 0 ? 0x00ff88 : 0x00cec9 });
+
+            const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 9, 8), pillarMat);
+            pL.position.set(0, 4.5, -9);
+            const pR = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 9, 8), pillarMat);
+            pR.position.set(0, 4.5, 9);
+
+            const beam = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 18.5), pillarMat);
+            beam.position.set(0, 8.8, 0);
+
+            const ringGeo = new THREE.TorusGeometry(6.0, 0.35, 8, 24);
+            const ring = new THREE.Mesh(ringGeo, neonMat);
+            ring.rotation.y = Math.PI / 2;
+            ring.position.y = 4.5;
+
+            const pLight = new THREE.PointLight(idx === 0 ? 0x00ff88 : 0x00cec9, 3.0, 18);
+            pLight.position.y = 4.5;
+
+            arch.add(pL, pR, beam, ring, pLight);
+            arch.position.set(g.x, g.y, g.z);
+            scene.add(arch);
+            this.gateMeshes.push({ group: arch, ring: ring, light: pLight, pos: g, index: idx });
+        });
+    }
+    update(dt, player) {
+        if (!this.active) return;
+        this.timer -= dt;
+
+        if (this.gateMeshes[this.currentGate]) {
+            const gm = this.gateMeshes[this.currentGate];
+            const pulse = 1.0 + Math.sin(Date.now() * 0.009) * 0.12;
+            gm.ring.scale.set(pulse, pulse, pulse);
+            gm.ring.material.color.setHex(0x00ff88);
+            gm.light.color.setHex(0x00ff88);
+            gm.light.intensity = 3.5 + Math.sin(Date.now() * 0.012) * 1.5;
+
+            const dist = Math.hypot(player.x - gm.pos.x, player.z - gm.pos.z);
+            if (dist < 10.5 && Math.abs(player.y - gm.pos.y) < 7.0) {
+                this.timer += 8.0;
+                sound.playStarPickup();
+                comboManager.addSmashBonus(`GATE ${this.currentGate + 1} CLEARED! ⚡ +8s`);
+                player.score = (player.score || 0) + 1200;
+                player.nitro = 100;
+
+                scene.remove(gm.group);
+                this.currentGate++;
+
+                if (this.currentGate >= this.gates.length) {
+                    this.finish(true, player);
+                    return;
+                }
+            }
+        }
+
+        if (this.timer <= 0) {
+            this.timer = 0;
+            this.finish(false, player);
+        }
+
+        this.updateUI();
+    }
+    updateUI() {
+        const timerEl = document.getElementById('val-highway-timer');
+        const gatesEl = document.getElementById('val-highway-gates');
+        if (timerEl) {
+            timerEl.innerText = `${Math.max(0, this.timer).toFixed(1)}s`;
+            timerEl.style.color = this.timer < 10 ? '#ff4757' : '#00cec9';
+        }
+        if (gatesEl) {
+            gatesEl.innerText = `${this.currentGate}/${this.gates.length}`;
+        }
+    }
+    finish(won, player) {
+        this.active = false;
+        sound.playTone(won ? 880 : 180, 0.45, won ? 'triangle' : 'sawtooth');
+        const best = persistence.getRecord('bestHighwayScore') || 0;
+        const finalScore = player.score || 0;
+        const isNewRecord = persistence.saveRecord('bestHighwayScore', Math.max(best, finalScore));
+
+        document.getElementById('modal-title').innerText = won ? 'HIGHWAY RUSH CLEARED! ⚡' : 'TIME EXPIRED! ⌛';
+        document.getElementById('stat-pos').innerText = `${this.currentGate}/${this.gates.length} Gates Cleared ${won ? '🏆' : '⚠️'}`;
+        document.getElementById('stat-best-lap').innerText = `${this.nearMissCount} Near-Miss Close Calls`;
+        document.getElementById('stat-total-time').innerText = `${finalScore.toLocaleString()} PTS ${isNewRecord ? '(NEW RECORD! 🌟)' : ''}`;
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+    cleanupMeshes() {
+        this.gateMeshes.forEach(gm => scene.remove(gm.group));
+        this.gateMeshes = [];
+    }
+    cleanup() {
+        this.active = false;
+        this.cleanupMeshes();
+        const timerBadge = document.getElementById('hud-highway-timer');
+        const gatesBadge = document.getElementById('hud-highway-gates');
+        if (timerBadge) timerBadge.style.display = 'none';
+        if (gatesBadge) gatesBadge.style.display = 'none';
+    }
+}
+const sysHighway = new HighwayRushSystem();
 // ==========================================
 
 function updatePlayer(dt) {
@@ -4580,6 +4830,33 @@ function updatePlayer(dt) {
 
         // Normalise against 60fps baseline, clamped to guard against tab-restore spikes
         const k = Math.min(Math.max((dt || 0.016) * 60, 0.2), 2.0);
+
+        // Near-Miss Adrenaline Detection (Passing civilian traffic at high speed)
+        if (typeof sysTraffic !== 'undefined' && sysTraffic.vehicles && sysTraffic.vehicles.length > 0) {
+            const speedKmh = Math.abs(player.speed) * 80;
+            if (speedKmh > 75) {
+                const nowMs = performance.now();
+                for (let i = 0; i < sysTraffic.vehicles.length; i++) {
+                    const tv = sysTraffic.vehicles[i];
+                    const dx = player.x - tv.x;
+                    const dz = player.z - tv.z;
+                    if (Math.abs(dx) > 5 || Math.abs(dz) > 5) continue;
+                    const d = Math.hypot(dx, dz);
+                    if (d >= 2.0 && d <= 3.8) {
+                        if (!tv.lastNearMiss || nowMs - tv.lastNearMiss > 3500) {
+                            tv.lastNearMiss = nowMs;
+                            comboManager.addSmashBonus('CLOSE CALL! ⚡ +250');
+                            player.score = (player.score || 0) + 250;
+                            player.nitro = Math.min(100, (player.nitro || 0) + 25);
+                            sound.playTone(523.25, 0.1, 'sawtooth');
+                            if (typeof sysHighway !== 'undefined' && sysHighway.active) {
+                                sysHighway.nearMissCount++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (window.speedTraps && window.speedTraps.length > 0) {
             const speedKMH = Math.round(Math.abs(player.speed) * 80);
@@ -5319,6 +5596,7 @@ function updatePlayer(dt) {
         sysTraffic.update(dt, player);
         sysTaxi.update(dt, player);
         sysPolice.update(dt);
+        if (currentMode === 'highway') sysHighway.update(dt, player);
 
         if (currentMode) {
             comboManager.update(dt, player, keys);
@@ -5376,9 +5654,16 @@ function updatePlayer(dt) {
     // Populate Initial Records in Menu UI
     persistence.updateMenuUI();
 
+    // Initialize Saved Graphics Quality
+    if (typeof setGraphicsQuality === 'function') {
+        setGraphicsQuality(persistence.getRecord('gfxQuality') || 'high');
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') === 'city') {
         setTimeout(startCityMode, 100);
+    } else if (urlParams.get('mode') === 'highway') {
+        setTimeout(startHighwayRushMode, 100);
     } else if (urlParams.get('mode') === 'race') {
         setTimeout(startRaceMode, 100);
     }
