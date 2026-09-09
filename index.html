@@ -499,27 +499,19 @@
         <p class="logo-subtitle">Stylized 4x4 Off-Road Playground (Inspired by Bruno Simon's Folio 2025)</p>
 
         <div class="mode-cards-container">
-            <!-- Mode 1: Metropolis Open World -->
+            <!-- Mode 1: Forest & River Playground -->
             <div class="mode-card glass-panel" id="btn-mode-city">
-                <div class="mode-icon">🏙️</div>
-                <h3>Metropolis City</h3>
-                <p>Cruise a massive multi-kilometer metropolis! Downtown skyscrapers, suspension bridge, cargo harbor, crazy taxi fares & police chases.</p>
-                <button class="btn" style="width: 100%;">EXPLORE CITY</button>
+                <div class="mode-icon">🌲</div>
+                <h3>Forest &amp; River Playground</h3>
+                <p>Blast through a lush pine &amp; autumn forest with a sparkling river, cross wooden bridges, splash through water, launch off massive river ramps, smash destructible crates, and collect 10 golden stars.</p>
+                <button class="btn" style="width: 100%;">EXPLORE FOREST</button>
             </div>
 
-            <!-- Mode 2: Highway Rush -->
-            <div class="mode-card glass-panel" id="btn-mode-highway">
-                <div class="mode-icon">⚡</div>
-                <h3>Highway Rush</h3>
-                <p>High-speed expressway & bridge time attack! Dodge oncoming traffic, score +250 near-miss combos, and hit neon gates before time expires.</p>
-                <button class="btn" style="width: 100%; background: linear-gradient(135deg, #00cec9, #0984e3);">RUSH HIGHWAY</button>
-            </div>
-
-            <!-- Mode 3: Dusk Circuit Race -->
+            <!-- Mode 2: Dusk Circuit Race -->
             <div class="mode-card glass-panel" id="btn-mode-race">
                 <div class="mode-icon">🏁</div>
-                <h3>Circuit Grand Prix</h3>
-                <p>Intense off-road circuit racing against 6 competitive AI rivals! Dynamic rubber-banding, solid car bumps, rumble curbs & 3-lap podium.</p>
+                <h3>Dusk Circuit Race</h3>
+                <p>Intense off-road circuit racing against 6 competitive AI rivals! Dynamic rubber-banding, solid car bumps, rumble curbs &amp; 3-lap podium.</p>
                 <button class="btn" style="width: 100%; background: linear-gradient(135deg, #ff7675, #d63031);">START RACE</button>
             </div>
         </div>
@@ -550,7 +542,6 @@
             <span>🏆 Best Lap: <strong id="rec-best-lap" style="color: #ffbe76;">--:--.-</strong></span>
             <span>🏅 High Stunt: <strong id="rec-best-score" style="color: #ffbe76;">0</strong></span>
             <span>⭐ Stars: <strong id="rec-stars" style="color: #ffbe76;">0/10</strong></span>
-            <span>⚡ Highway Rush: <strong id="rec-highway" style="color: #00cec9;">0 PTS</strong></span>
             <span>📸 Top Speed: <strong id="rec-trap" style="color: #ff7675;">0 KM/H</strong></span>
         </div>
 
@@ -589,12 +580,6 @@
             </div>
             <div id="hud-race-time" class="hud-badge glass-panel" style="display: none;">
                 ⏱️ <span id="val-time" class="val">00:00.0</span>
-            </div>
-            <div id="hud-highway-timer" class="hud-badge glass-panel" style="display: none; color: #00cec9; font-weight: 800;">
-                ⏳ <span id="val-highway-timer" class="val">40.0s</span>
-            </div>
-            <div id="hud-highway-gates" class="hud-badge glass-panel" style="display: none; color: #ffeaa7; font-weight: 800;">
-                ⚡ GATES: <span id="val-highway-gates" class="val">0/6</span>
             </div>
 
             <!-- Nitro Gauge -->
@@ -2446,6 +2431,35 @@
     }
 
     // Helper: Register tree with collision, shadow, and wobble
+    // Add a structure to the scene AND make it solid. Without this a prop is
+    // purely decorative and the car drives straight through it.
+    // Round footprint (towers, poles, campfires):
+    function registerSolidRound(obj, radius, height) {
+        scene.add(obj);
+        activeWorldObjects.push(obj);
+        obj.colliderRadius = radius;
+        obj.columnHeight = height;
+        activeColliders.push(obj);
+        return obj;
+    }
+    // Rectangular footprint (docks, grandstands, tents). halfX/halfZ are the
+    // half-extents AFTER any rotation.y the caller applied.
+    function registerSolidBox(obj, halfX, halfZ, height) {
+        scene.add(obj);
+        activeWorldObjects.push(obj);
+        obj.isBox = true;
+        obj.boxHalfX = halfX;
+        obj.boxHalfZ = halfZ;
+        obj.boxHeight = height;
+        activeColliders.push(obj);
+        return obj;
+    }
+    // Swap half-extents when a prop is yawed by ~90 degrees.
+    function orientedHalfExtents(halfX, halfZ, rotY) {
+        const quarter = Math.abs(Math.sin(rotY || 0)) > 0.707;
+        return quarter ? [halfZ, halfX] : [halfX, halfZ];
+    }
+
     function registerTree(tree, x, z, scale = 1.0) {
         scene.add(tree);
         activeWorldObjects.push(tree);
@@ -2988,6 +3002,24 @@
     let activeTrees = [];
     let boostPads = [];
     let stuntRings = [];
+    // Axis-aligned drivable platforms (bridge decks). {minX,maxX,minZ,maxZ,y}
+    let drivableSurfaces = [];
+
+    // Height of the highest surface under (x,z) that the car can be supported by.
+    // Airborne cars land on a deck they fall onto; grounded cars step up onto a
+    // low deck edge (STEP_UP) so bridges can simply be driven onto.
+    const SURFACE_STEP_UP = 1.15;
+    function surfaceHeightAt(x, z, y, grounded) {
+        let h = 0;
+        for (let i = 0; i < drivableSurfaces.length; i++) {
+            const s = drivableSurfaces[i];
+            if (x < s.minX || x > s.maxX || z < s.minZ || z > s.maxZ) continue;
+            if (s.y <= h) continue;
+            // reachable if we're at/above the deck, or close enough beneath it to climb
+            if (y >= s.y - 0.05 || (grounded && s.y - y <= SURFACE_STEP_UP)) h = s.y;
+        }
+        return h;
+    }
     let collectedStarCount = 0;
     let smashedPropCount = 0;
 
@@ -3152,7 +3184,6 @@
 
     // UI Buttons
     document.getElementById('btn-mode-city').addEventListener('click', () => { sound.init(); startCityMode(); });
-    document.getElementById('btn-mode-highway').addEventListener('click', () => { sound.init(); startHighwayRushMode(); });
     document.getElementById('btn-mode-race').addEventListener('click', () => { sound.init(); startRaceMode(); });
     document.getElementById('btn-hud-menu').addEventListener('click', returnToMenu);
     document.getElementById('btn-hud-reset').addEventListener('click', resetPlayerVehicle);
@@ -3286,7 +3317,6 @@
 
     document.getElementById('btn-modal-restart').addEventListener('click', () => {
         if (currentMode === 'race') startRaceMode();
-        else if (currentMode === 'highway') startHighwayRushMode();
         else startCityMode();
     });
     document.getElementById('btn-modal-menu').addEventListener('click', returnToMenu);
@@ -3301,6 +3331,7 @@
         activeTrees = [];
         boostPads = [];
         stuntRings = [];
+        drivableSurfaces = [];
         aiCars.forEach(ai => scene.remove(ai.mesh));
         aiCars = [];
         activeDebris.forEach(d => scene.remove(d));
@@ -3317,384 +3348,388 @@
     // ==========================================================================
     function buildForestRiverPlayground() {
         clearWorld();
-        scene.background = new THREE.Color(0x190e28);
-        scene.fog = new THREE.FogExp2(0x190e28, 0.0018);
+        scene.background = new THREE.Color(0x351a42);
+        scene.fog = new THREE.FogExp2(0x351a42, 0.0055);
 
-        // Ground: Asphalt City Foundation
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x14121a, roughness: 0.9 });
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), groundMat);
+        // Ground: Lush Meadow Green
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x43a047, roughness: 0.85 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
         activeWorldObjects.push(ground);
-        
-        window.speedTraps = [
-            {x: 0, y: 0, z: -450, radius: 18, cooldown: 0}, 
-            {x: 600, y: 15, z: 0, radius: 18, cooldown: 0}
+
+        // Winding River Channel: Sparkling Turquoise
+        const riverMat = new THREE.MeshStandardMaterial({ color: 0x00cec9, roughness: 0.12, metalness: 0.45 });
+        const riverCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-18, 0.04, -200),
+            new THREE.Vector3(-24, 0.04, -90),
+            new THREE.Vector3(-14, 0.04, 0),
+            new THREE.Vector3(-28, 0.04, 90),
+            new THREE.Vector3(-18, 0.04, 200)
+        ]);
+        const riverPts = riverCurve.getPoints(140);
+        const riverGeo = new THREE.BufferGeometry();
+        const rVerts = [];
+        const riverWidth = 18;
+
+        for (let i = 0; i < riverPts.length; i++) {
+            const p = riverPts[i];
+            const tangent = (i < riverPts.length - 1) ? new THREE.Vector3().subVectors(riverPts[i+1], p).normalize() : new THREE.Vector3(0,0,1);
+            const norm = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            rVerts.push(p.x - norm.x * riverWidth / 2, 0.04, p.z - norm.z * riverWidth / 2);
+            rVerts.push(p.x + norm.x * riverWidth / 2, 0.04, p.z + norm.z * riverWidth / 2);
+        }
+        const rIdx = [];
+        for (let i = 0; i < riverPts.length - 1; i++) {
+            const i1 = i * 2, i2 = i * 2 + 1, i3 = (i + 1) * 2, i4 = (i + 1) * 2 + 1;
+            rIdx.push(i1, i2, i3, i2, i4, i3);
+        }
+        riverGeo.setIndex(rIdx);
+        riverGeo.setAttribute('position', new THREE.Float32BufferAttribute(rVerts, 3));
+        riverGeo.computeVertexNormals();
+
+        const riverMesh = new THREE.Mesh(riverGeo, riverMat);
+        riverMesh.receiveShadow = true;
+        scene.add(riverMesh);
+        activeWorldObjects.push(riverMesh);
+
+        // Bridges across River
+        // The river runs north-south along Z, so bridge decks must span X.
+        // createWoodBridge builds its deck along local Z, hence the 90 degree yaw.
+        // Deck planks sit at local y=0.65 with 0.22 thickness -> drivable top ~0.76.
+        const BRIDGE_DECK_Y = 0.76;
+        [
+            { x: -14, z: 0,  span: 34, width: 9.0 },
+            { x: -24, z: 85, span: 34, width: 8.5 }
+        ].forEach(spec => {
+            const b = createWoodBridge(spec.x, spec.z, spec.span, spec.width);
+            b.rotation.y = Math.PI / 2;   // rotate deck to cross the river
+            scene.add(b);
+            activeWorldObjects.push(b);
+
+            // After the yaw, local length maps to world X and local width to world Z.
+            drivableSurfaces.push({
+                minX: spec.x - spec.span / 2,
+                maxX: spec.x + spec.span / 2,
+                minZ: spec.z - spec.width / 2,
+                maxZ: spec.z + spec.width / 2,
+                y: BRIDGE_DECK_Y
+            });
+        });
+
+        // Wooden Fishing Pier / Dock Extending Over Water
+        const pier = createRiverDock(-5, -45, Math.PI / 2);
+        {
+            const [hx, hz] = orientedHalfExtents(3.0, 6.0, pier.rotation.y);
+            registerSolidBox(pier, hx, hz, 1.6);
+        }
+
+        // Water Splash Ford
+        const fordRamp = new THREE.Mesh(new THREE.PlaneGeometry(14, 24), new THREE.MeshStandardMaterial({ color: 0x8b572a, roughness: 0.9 }));
+        fordRamp.rotation.x = -Math.PI / 2;
+        fordRamp.position.set(-23, 0.05, -75);
+        scene.add(fordRamp);
+        activeWorldObjects.push(fordRamp);
+
+        // Terracotta Forest Trail Network
+        const pathMat = new THREE.MeshStandardMaterial({ color: 0xd97757, roughness: 0.85 });
+        const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(11, 280), pathMat);
+        mainRoad.rotation.x = -Math.PI / 2;
+        mainRoad.position.set(0, 0.03, 0);
+        mainRoad.receiveShadow = true;
+        scene.add(mainRoad);
+        activeWorldObjects.push(mainRoad);
+
+        const crossRoad = new THREE.Mesh(new THREE.PlaneGeometry(160, 11), pathMat);
+        crossRoad.rotation.x = -Math.PI / 2;
+        crossRoad.position.set(0, 0.03, 0);
+        crossRoad.receiveShadow = true;
+        scene.add(crossRoad);
+        activeWorldObjects.push(crossRoad);
+
+        // Cadet Bootcamp Trail Branch
+        const cadetRoad = new THREE.Mesh(new THREE.PlaneGeometry(10, 90), pathMat);
+        cadetRoad.rotation.x = -Math.PI / 2;
+        cadetRoad.position.set(45, 0.03, -15);
+        cadetRoad.receiveShadow = true;
+        scene.add(cadetRoad);
+        activeWorldObjects.push(cadetRoad);
+
+        // 260+ Diverse Trees with Real Solid Trunk Collisions
+        for (let t = 0; t < 260; t++) {
+            const tx = (Math.random() - 0.5) * 280;
+            const tz = (Math.random() - 0.5) * 280;
+            const onRoad = (Math.abs(tx) < 7.5 || Math.abs(tz) < 7.5);
+            const onRiver = Math.abs(tx - (-18)) < 14;
+            const inCadetBase = (tx > 30 && tx < 92 && tz > -65 && tz < 55);
+
+            if (!onRoad && !onRiver && !inCadetBase) {
+                const scale = 0.8 + Math.random() * 0.65;
+                const r = Math.random();
+                const tree = (r < 0.35) ? createPineTree(tx, tz, scale) :
+                             (r < 0.60) ? createAutumnOakTree(tx, tz, scale) :
+                             (r < 0.82) ? createGoldenBirchTree(tx, tz, scale) :
+                             createBlossomTree(tx, tz, scale);
+                registerTree(tree, tx, tz, scale);
+            }
+        }
+
+        // 130+ Wildflower Patches
+        const flowerColors = [0xff4757, 0xfed330, 0xa55eea, 0xff9f43, 0xffffff];
+        for (let f = 0; f < 130; f++) {
+            const fx = (Math.random() - 0.5) * 260;
+            const fz = (Math.random() - 0.5) * 260;
+            if ((Math.abs(fx) > 6.5 || Math.abs(fz) > 6.5) && Math.abs(fx - (-18)) > 11) {
+                const col = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                const patch = createFlowerPatch(fx, fz, col);
+                scene.add(patch);
+                activeWorldObjects.push(patch);
+            }
+        }
+
+        // 50+ Leafy Bushes
+        for (let b = 0; b < 50; b++) {
+            const bx = (Math.random() - 0.5) * 240;
+            const bz = (Math.random() - 0.5) * 240;
+            if ((Math.abs(bx) > 6.8 || Math.abs(bz) > 6.8) && Math.abs(bx - (-18)) > 11) {
+                const bush = createBush(bx, bz, 0.8 + Math.random() * 0.6);
+                scene.add(bush);
+                activeWorldObjects.push(bush);
+            }
+        }
+
+        // Stepped Basalt Rock Formations
+        const rockLocations = [
+            [-26, -14, 3.8], [-24, -12, 4.8], [-27, -10, 2.9],
+            [-26, 12, 3.5], [-24, 14, 4.5], [-25, 16, 2.6],
+            [-3, -14, 3.2], [-2, -16, 4.2], [-4, -18, 2.4],
+            [32, -30, 4.5], [34, -28, 5.5], [36, -31, 3.8],
+            [15, 65, 4.2], [18, 68, 5.0], [13, 70, 3.5]
         ];
-        
-        window.speedTraps.forEach(trap => {
-            const gantryGeo = new THREE.BoxGeometry(40, 2, 2);
-            const gantryMat = new THREE.MeshStandardMaterial({color: 0xffd700, roughness: 0.5});
-            const gantry = new THREE.Mesh(gantryGeo, gantryMat);
-            gantry.position.set(trap.x, trap.y + 12, trap.z);
-            scene.add(gantry);
-            activeWorldObjects.push(gantry);
-            
-            const postGeo = new THREE.BoxGeometry(2, 12, 2);
-            const post1 = new THREE.Mesh(postGeo, gantryMat);
-            post1.position.set(trap.x - 19, trap.y + 6, trap.z);
-            scene.add(post1);
-            activeWorldObjects.push(post1);
-            
-            const post2 = new THREE.Mesh(postGeo, gantryMat);
-            post2.position.set(trap.x + 19, trap.y + 6, trap.z);
-            scene.add(post2);
-            activeWorldObjects.push(post2);
-            
-            const cameraGeo = new THREE.BoxGeometry(1.5, 1.5, 2);
-            const cameraMat = new THREE.MeshStandardMaterial({color: 0x222222});
-            const cam = new THREE.Mesh(cameraGeo, cameraMat);
-            cam.position.set(trap.x, trap.y + 11, trap.z + 1);
-            scene.add(cam);
-            activeWorldObjects.push(cam);
+        rockLocations.forEach(r => {
+            const rock = createBasaltColumn(r[0], r[1], r[2]);
+            scene.add(rock);
+            activeWorldObjects.push(rock);
+            activeColliders.push(rock);
         });
 
-        // Grid of Main Multi-Lane Avenues
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x22242b, roughness: 0.65 });
-        const roadGroup = new THREE.Group();
-        const avenueWidth = 56;
-        const mainAvenueGeo = new THREE.PlaneGeometry(avenueWidth, 3600);
-        
-        // North-South Main Boulevard
-        const road1 = new THREE.Mesh(mainAvenueGeo, roadMat);
-        road1.rotation.x = -Math.PI / 2;
-        road1.position.set(0, 0.08, 0);
-        road1.receiveShadow = true;
-        roadGroup.add(road1);
-        
-        // East-West Grand Avenue
-        const road2 = new THREE.Mesh(mainAvenueGeo, roadMat);
-        road2.rotation.x = -Math.PI / 2;
-        road2.rotation.z = Math.PI / 2;
-        road2.position.set(0, 0.08, 0);
-        road2.receiveShadow = true;
-        roadGroup.add(road2);
-
-        // Harbor Access Expressway to the East
-        const roadHarbor = new THREE.Mesh(new THREE.PlaneGeometry(36, 1200), roadMat);
-        roadHarbor.rotation.x = -Math.PI / 2;
-        roadHarbor.rotation.z = Math.PI / 2;
-        roadHarbor.position.set(600, 0.08, 0);
-        roadHarbor.receiveShadow = true;
-        roadGroup.add(roadHarbor);
-
-        // Dashed White Centerlines
-        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        for (let lz = -1400; lz <= 1400; lz += 24) {
-            const dash = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 12), lineMat);
-            dash.rotation.x = -Math.PI / 2;
-            dash.position.set(0, 0.12, lz);
-            roadGroup.add(dash);
-        }
-        for (let lx = -1400; lx <= 1400; lx += 24) {
-            const dash = new THREE.Mesh(new THREE.PlaneGeometry(12, 1.2), lineMat);
-            dash.rotation.x = -Math.PI / 2;
-            dash.position.set(lx, 0.12, 0);
-            roadGroup.add(dash);
-        }
-        
-        scene.add(roadGroup);
-        activeWorldObjects.push(roadGroup);
-
-        // Streetlights along the Avenues
-        for (let lz = -350; lz <= 350; lz += 70) {
-            [-30, 30].forEach(lx => {
-                const lamp = createGlowingLantern(lx, lz);
-                scene.add(lamp);
-                activeWorldObjects.push(lamp);
-            });
-        }
-        for (let lx = -350; lx <= 350; lx += 70) {
-            [-30, 30].forEach(lz => {
-                const lamp = createGlowingLantern(lx, lz);
-                scene.add(lamp);
-                activeWorldObjects.push(lamp);
-            });
-        }
-
-        // Downtown Skyscraper District using InstancedMesh
-        const buildingCount = 400;
-        const bGeo = new THREE.BoxGeometry(1, 1, 1);
-        
-        const winCanvas = document.createElement('canvas');
-        winCanvas.width = 512;
-        winCanvas.height = 1024;
-        const wCtx = winCanvas.getContext('2d');
-        wCtx.fillStyle = '#05050a'; // Dark glass
-        wCtx.fillRect(0, 0, 512, 1024);
-        const winColors = ['#00cec9', '#fdcb6e', '#e84393', '#ffffff'];
-        for (let y = 0; y < 1024; y += 32) {
-            for (let x = 0; x < 512; x += 16) {
-                if (Math.random() > 0.65) {
-                    wCtx.fillStyle = winColors[Math.floor(Math.random() * winColors.length)];
-                    wCtx.shadowBlur = 10;
-                    wCtx.shadowColor = wCtx.fillStyle;
-                    wCtx.fillRect(x + 2, y + 4, 12, 24);
-                    wCtx.shadowBlur = 0;
-                }
-            }
-        }
-        
-        const winTex = new THREE.CanvasTexture(winCanvas);
-        winTex.wrapS = THREE.RepeatWrapping;
-        winTex.wrapT = THREE.RepeatWrapping;
-        winTex.repeat.set(2, 6);
-        
-        const bMat = new THREE.MeshStandardMaterial({ 
-            color: 0x181828,
-            map: winTex,
-            emissiveMap: winTex,
-            emissive: 0xffffff,
-            emissiveIntensity: 0.8,
-            roughness: 0.2,
-            metalness: 0.9
-        });
-        
-        const bMesh = new THREE.InstancedMesh(bGeo, bMat, buildingCount);
-        bMesh.castShadow = true;
-        bMesh.receiveShadow = true;
-        
-        const dummy = new THREE.Object3D();
-        const color = new THREE.Color();
-        let bIdx = 0;
-        
-        for (let blockX = -3; blockX <= 3; blockX++) {
-            for (let blockZ = -3; blockZ <= 3; blockZ++) {
-                if (blockX === 0 || blockZ === 0) continue; // Keep avenues open
-                
-                for (let i = 0; i < 10; i++) {
-                    const bx = blockX * 110 + (Math.random() * 60 - 30);
-                    const bz = blockZ * 110 + (Math.random() * 60 - 30);
-                    const bw = 16 + Math.random() * 18;
-                    const bd = 16 + Math.random() * 18;
-                    const bh = 55 + Math.random() * 160;
-                    
-                    dummy.position.set(bx, bh / 2, bz);
-                    dummy.scale.set(bw, bh, bd);
-                    dummy.updateMatrix();
-                    bMesh.setMatrixAt(bIdx, dummy.matrix);
-                    
-                    // Cyberpunk skyscraper hues (cyan, purple, magenta, gold)
-                    const hues = [0.55, 0.75, 0.85, 0.08, 0.6];
-                    color.setHSL(hues[Math.floor(Math.random() * hues.length)], 0.6, 0.45);
-                    bMesh.setColorAt(bIdx, color);
-                    bIdx++;
-                    if (bIdx >= buildingCount) break;
-                }
-                if (bIdx >= buildingCount) break;
-            }
-            if (bIdx >= buildingCount) break;
-        }
-        
-        bMesh.instanceMatrix.needsUpdate = true;
-        if (bMesh.instanceColor) bMesh.instanceColor.needsUpdate = true;
-        scene.add(bMesh);
-        activeWorldObjects.push(bMesh);
-
-        // Neon Glow accents (windows and storefront banners)
-        const glowGeo = new THREE.BoxGeometry(1, 1, 1);
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0x00cec9 });
-        const glowMesh = new THREE.InstancedMesh(glowGeo, glowMat, 220);
-        let gIdx = 0;
-        for (let i = 0; i < 220; i++) {
-            const gx = (Math.random() > 0.5 ? 1 : -1) * (45 + Math.random() * 260);
-            const gz = (Math.random() > 0.5 ? 1 : -1) * (45 + Math.random() * 260);
-            dummy.position.set(gx, 12 + Math.random() * 110, gz);
-            dummy.scale.set(16, 2.5, 16.2);
-            dummy.updateMatrix();
-            glowMesh.setMatrixAt(gIdx, dummy.matrix);
-            glowMesh.setColorAt(gIdx, new THREE.Color().setHSL(Math.random(), 1.0, 0.55));
-            gIdx++;
-        }
-        glowMesh.instanceMatrix.needsUpdate = true;
-        if (glowMesh.instanceColor) glowMesh.instanceColor.needsUpdate = true;
-        scene.add(glowMesh);
-        activeWorldObjects.push(glowMesh);
-
-        // Sparkling River Canal
-        const riverMat = new THREE.MeshStandardMaterial({ color: 0x00cec9, roughness: 0.12, metalness: 0.5, transparent: true, opacity: 0.92 });
-        const river = new THREE.Mesh(new THREE.PlaneGeometry(900, 160), riverMat);
-        river.rotation.x = -Math.PI / 2;
-        river.position.set(600, 0.06, 0);
-        scene.add(river);
-        activeWorldObjects.push(river);
-
-        // Grand Cable Suspension Bridge spanning across the Canal
-        const bridgeGroup = new THREE.Group();
-        const deckMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.8 });
-        const deck = new THREE.Mesh(new THREE.BoxGeometry(180, 2, 38), deckMat);
-        deck.position.set(600, 15, 0);
-        deck.receiveShadow = true;
-        deck.castShadow = true;
-        bridgeGroup.add(deck);
-
-        // Ramps connecting Bridge to Ground
-        const rampGeo = new THREE.BoxGeometry(65, 2, 38);
-        const ramp1 = new THREE.Mesh(rampGeo, deckMat);
-        ramp1.position.set(490, 7.5, 0);
-        ramp1.rotation.z = Math.PI / 12;
-        bridgeGroup.add(ramp1);
-        
-        const ramp2 = new THREE.Mesh(rampGeo, deckMat);
-        ramp2.position.set(710, 7.5, 0);
-        ramp2.rotation.z = -Math.PI / 12;
-        bridgeGroup.add(ramp2);
-
-        // Suspension Bridge Support Towers
-        const towerMat = new THREE.MeshStandardMaterial({ color: 0xd63031, roughness: 0.6 }); // Crimson Red
-        [-45, 45].forEach(px => {
-            [-16, 16].forEach(pz => {
-                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 3.2, 65, 8), towerMat);
-                pillar.position.set(600 + px, 32, pz);
-                pillar.castShadow = true;
-                bridgeGroup.add(pillar);
-            });
-        });
-
-        // Golden Stay Cables
-        const cableMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, emissive: 0xe67e22, emissiveIntensity: 0.3 });
-        [-16, 16].forEach(pz => {
-            const c1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 95), cableMat);
-            c1.position.set(600 - 22, 32, pz);
-            c1.rotation.z = -Math.PI / 4;
-            bridgeGroup.add(c1);
-            
-            const c2 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 95), cableMat);
-            c2.position.set(600 + 22, 32, pz);
-            c2.rotation.z = Math.PI / 4;
-            bridgeGroup.add(c2);
-        });
-
-        scene.add(bridgeGroup);
-        activeWorldObjects.push(bridgeGroup);
-
-        // Industrial Cargo Harbor
-        const harborX = 600;
-        const harborZ = 320;
-        
-        const harborMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.85 });
-        const harborBase = new THREE.Mesh(new THREE.PlaneGeometry(420, 420), harborMat);
-        harborBase.rotation.x = -Math.PI / 2;
-        harborBase.position.set(harborX, 0.12, harborZ);
-        scene.add(harborBase);
-        activeWorldObjects.push(harborBase);
-
-        // Instanced Colorful Shipping Containers
-        const cGeo = new THREE.BoxGeometry(7, 6.5, 16);
-        const cMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.35 });
-        const cMesh = new THREE.InstancedMesh(cGeo, cMat, 150);
-        cMesh.castShadow = true;
-        cMesh.receiveShadow = true;
-        
-        let cIdx = 0;
-        for (let i = 0; i < 30; i++) {
-            const stackX = harborX - 160 + Math.random() * 320;
-            const stackZ = harborZ - 160 + Math.random() * 320;
-            const h = 1 + Math.floor(Math.random() * 4);
-            const rotY = Math.random() > 0.5 ? 0 : Math.PI / 2;
-            
-            for (let y = 0; y < h; y++) {
-                dummy.position.set(stackX, 3.25 + y * 6.5, stackZ);
-                dummy.rotation.set(0, rotY, 0);
-                dummy.scale.set(1, 1, 1);
-                dummy.updateMatrix();
-                cMesh.setMatrixAt(cIdx, dummy.matrix);
-                
-                const cColors = [0xc0392b, 0x2980b9, 0x27ae60, 0xe67e22, 0xf39c12, 0x8e44ad];
-                cMesh.setColorAt(cIdx, new THREE.Color(cColors[Math.floor(Math.random() * cColors.length)]));
-                
-                cIdx++;
-                if (cIdx >= 150) break;
-            }
-            if (cIdx >= 150) break;
-        }
-        cMesh.instanceMatrix.needsUpdate = true;
-        if (cMesh.instanceColor) cMesh.instanceColor.needsUpdate = true;
-        scene.add(cMesh);
-        activeWorldObjects.push(cMesh);
-
-        // Stunt Ramps in Harbor & City
-        const ramps = [
-            createStuntRamp(0, -180, 0),
-            createStuntRamp(0, 180, Math.PI),
-            createStuntRamp(harborX - 80, harborZ, -Math.PI / 4),
-            createStuntRamp(harborX + 80, harborZ + 60, Math.PI / 3)
+        // Glowing Trail Lanterns
+        const lanternSpots = [
+            [-14, 0, -11], [-14, 0, 11], [9, 0, -11], [9, 0, 11],
+            [-28, 0, -6], [-28, 0, 6], [-16, 0, -6], [-16, 0, 6],
+            [0, 0, -50], [0, 0, 50], [45, 0, -8], [45, 0, 8],
+            [-22, 0, -85], [-22, 0, -55], [0, 0, -90], [0, 0, 90]
         ];
-        ramps.forEach(r => {
+        lanternSpots.forEach(s => {
+            const l = createGlowingLantern(s[0], s[2]);
+            scene.add(l);
+            activeWorldObjects.push(l);
+        });
+
+        // Breakable Wooden Fences
+        const fences = [
+            createBreakableFence(7, -6, Math.PI / 2),
+            createBreakableFence(7, 6, Math.PI / 2),
+            createBreakableFence(-7, -25, 0),
+            createBreakableFence(7, -25, 0),
+            createBreakableFence(-7, 25, 0),
+            createBreakableFence(7, 25, 0)
+        ];
+        fences.forEach(f => {
+            scene.add(f);
+            activeWorldObjects.push(f);
+            destructibleProps.push(f);
+        });
+
+        // Traffic Cones
+        for (let c = 0; c < 12; c++) {
+            const cone = createTrafficCone(12 + (c % 2) * 1.6, -18 + Math.floor(c / 2) * 2.5);
+            scene.add(cone);
+            activeWorldObjects.push(cone);
+            destructibleProps.push(cone);
+        }
+
+        // Directional Wooden Signposts
+        const signs = [
+            createSignPost(7, -3, 0),
+            createSignPost(-8, -3, Math.PI),
+            createSignPost(36, -8, -Math.PI / 2)
+        ];
+        signs.forEach(s => {
+            scene.add(s);
+            activeWorldObjects.push(s);
+        });
+
+        // ======================================================================
+        // CADET BOOTCAMP & MILITARY COMPOUND
+        // ======================================================================
+        // 1. Cadet Lookout Watchtowers with Searchlights
+        const tower1 = createCadetWatchtower(44, -55);
+        const tower2 = createCadetWatchtower(86, -20);
+        const tower3 = createCadetWatchtower(55, 42);
+        [tower1, tower2, tower3].forEach(tw => registerSolidRound(tw, 2.9, 10.0));
+
+        // 2. Military Barracks Ridge Tents
+        const tents = [
+            createCadetTent(60, -48, 0),
+            createCadetTent(72, -48, 0),
+            createCadetTent(84, -48, 0),
+            createCadetTent(72, -34, Math.PI)
+        ];
+        tents.forEach(t => {
+            const [hx, hz] = orientedHalfExtents(2.6, 2.0, t.rotation.y);
+            registerSolidBox(t, hx, hz, 2.8);
+        });
+
+        // 3. Campfire & Flagpole
+        const campfire = createCampfire(60, -34);
+        const flagpole = createFlagPole(52, -48);
+        registerSolidRound(campfire, 1.5, 1.3);
+        registerSolidRound(flagpole, 0.7, 9.0);
+
+        // 4. Cadet Obstacle Course: Slalom Tire Stacks (Destructible!)
+        const tirePositions = [
+            [40, -18], [50, -8], [40, 2], [52, 12], [42, 22], [54, 32],
+            [68, -12], [68, 6], [78, -12], [78, 6]
+        ];
+        tirePositions.forEach(tp => {
+            const stack = createTireStack(tp[0], tp[1], 3);
+            scene.add(stack);
+            activeWorldObjects.push(stack);
+            destructibleProps.push(stack);
+        });
+
+        // 5. Cadet Hurdle Barricades & Sandbag Defensive Bunkers
+        const cadetBarricades = [
+            createCadetBarricade(38, -32, 0),
+            createCadetBarricade(54, -22, Math.PI / 4),
+            createCadetBarricade(60, 20, -Math.PI / 4),
+            createCadetBarricade(46, 38, 0)
+        ];
+        cadetBarricades.forEach(cb => {
+            scene.add(cb);
+            activeWorldObjects.push(cb);
+            destructibleProps.push(cb);
+        });
+
+        const sandbags = [
+            createSandbagBunker(46, -42, 0),
+            createSandbagBunker(76, -24, Math.PI / 2),
+            createSandbagBunker(50, 28, 0)
+        ];
+        sandbags.forEach(sb => {
+            scene.add(sb);
+            activeWorldObjects.push(sb);
+            destructibleProps.push(sb);
+        });
+
+        // 6. Explosive Fuel & TNT Barrels (Epic fiery voxel explosion on hit!)
+        const explosiveBarrels = [
+            createExplosiveBarrel(62, 0, -20, 0xe74c3c),
+            createExplosiveBarrel(64, 0, -20, 0xf1c40f),
+            createExplosiveBarrel(63, 1.4, -20, 0xe74c3c),
+            createExplosiveBarrel(76, 0, 18, 0xe74c3c),
+            createExplosiveBarrel(78, 0, 18, 0xf1c40f)
+        ];
+        explosiveBarrels.forEach(eb => {
+            scene.add(eb);
+            activeWorldObjects.push(eb);
+            destructibleProps.push(eb);
+        });
+
+        // 7. Cadet Assault Launch Ramp
+        const assaultRamp = createStuntRamp(48, -2, Math.PI);
+        scene.add(assaultRamp);
+        activeWorldObjects.push(assaultRamp);
+        activeColliders.push(assaultRamp);
+
+        // ======================================================================
+        // STUNT ARENA & SPEED BOOSTERS
+        // ======================================================================
+        // Mega Stunt Ramps
+        const riverJumpRamp = createStuntRamp(-34, -40, Math.PI / 2); // 45m Mega jump over the river!
+        const ramp1 = createStuntRamp(0, -45, 0);
+        const ramp2 = createStuntRamp(0, 45, Math.PI);
+        const ramp3 = createStuntRamp(45, 0, -Math.PI / 2);
+        [riverJumpRamp, ramp1, ramp2, ramp3].forEach(r => {
             scene.add(r);
-            activeColliders.push(r);
             activeWorldObjects.push(r);
+            activeColliders.push(r);
         });
 
-        // Stunt Rings
-        const rings = [
-            createStuntRing(0, 14, -220),
-            createStuntRing(0, 14, 220),
-            createStuntRing(600, 22, 0), // Atop suspension bridge!
-            createStuntRing(harborX - 50, 16, harborZ)
-        ];
-        rings.forEach(rng => {
+        // Neon Speed Boost Pads on Road Network
+        const boostP1 = createBoostPad(0, -20, 0);
+        const boostP2 = createBoostPad(0, 20, Math.PI);
+        const boostP3 = createBoostPad(25, 0, -Math.PI / 2);
+        [boostP1, boostP2, boostP3].forEach(bp => {
+            scene.add(bp);
+            activeWorldObjects.push(bp);
+            boostPads.push(bp);
+        });
+
+        // Floating Golden Stunt Rings in Mid-Air
+        const ring1 = createStuntRing(-20, 5.6, -40); // Over River Jump!
+        const ring2 = createStuntRing(0, 5.2, -36);   // Over Ramp 1!
+        const ring3 = createStuntRing(48, 5.2, 8);    // Over Cadet Ramp!
+        [ring1, ring2, ring3].forEach(rng => {
             scene.add(rng);
-            stuntRings.push(rng);
             activeWorldObjects.push(rng);
+            stuntRings.push(rng);
         });
 
-        // 10 Collectible Golden Stars
-        const starLocations = [
-            [0, 2.5, -90], [0, 2.5, 90], [-90, 2.5, 0], [90, 2.5, 0],
-            [600, 18, 0], [490, 10, 0], [710, 10, 0], // Bridge stars
-            [harborX - 80, 4, harborZ - 50], [harborX + 60, 12, harborZ + 40], [harborX, 4, harborZ + 120] // Harbor stars
+        // Multiple Giant Crate Pyramids
+        const cratePyramidLocs = [
+            [18, 8], [-38, 20], [28, -60]
         ];
-        starLocations.forEach(([sx, sy, sz]) => {
-            const star = createCollectibleStar(sx, sy, sz);
-            scene.add(star);
-            collectibleStars.push(star);
-            activeWorldObjects.push(star);
+        cratePyramidLocs.forEach(cLoc => {
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < (3 - row); col++) {
+                    const crate = createDestructibleCrate(cLoc[0] + col * 1.6, row * 1.4, cLoc[1], 1.4, (row + col) % 2 === 0 ? 0xffbe76 : 0xe17055);
+                    scene.add(crate);
+                    activeWorldObjects.push(crate);
+                    interactiveCrates.push(crate);
+                }
+            }
         });
 
-        // Destructible Toy Crates
-        for (let c = 0; c < 28; c++) {
-            const side = (c % 2 === 0 ? 30 : -30);
-            const cz = -320 + c * 23;
-            const crate = createDestructibleCrate(side + (Math.random() - 0.5) * 3, 0.7, cz, 1.4, 0xffbe76);
-            scene.add(crate);
-            interactiveCrates.push(crate);
-            activeWorldObjects.push(crate);
+        // Autumn Grass Tufts
+        for (let g = 0; g < 380; g++) {
+            const gx = (Math.random() - 0.5) * 220;
+            const gz = (Math.random() - 0.5) * 220;
+            if ((Math.abs(gx) > 5.2 || Math.abs(gz) > 5.2) && Math.abs(gx - (-18)) > 9) {
+                const tuft = createGrassTuft(gx, gz);
+                scene.add(tuft);
+                activeWorldObjects.push(tuft);
+            }
         }
 
-        // Cyberpunk Atmospheric Lighting
-        const ambientLight = new THREE.AmbientLight(0x563870, 1.8);
-        scene.add(ambientLight);
-        activeWorldObjects.push(ambientLight);
+        // 10 Golden Collectible Stars
+        const starLocations = [
+            [0, 3.2, 0],         // Central trail intersection
+            [-14, 2.6, 0],       // Over main wooden bridge
+            [-22, 1.2, -75],     // River water splash
+            [-20, 5.6, -40],     // Air above river jump!
+            [0, 4.5, -45],       // Top of ramp 1
+            [0, 4.5, 45],        // Top of ramp 2
+            [48, 5.2, 8],        // Above Cadet Assault Jump!
+            [44, 8.8, -55],      // High on Cadet Watchtower!
+            [60, 2.2, -34],      // Beside Cadet Campfire!
+            [-5, 2.4, -45]       // On wooden river dock!
+        ];
 
-        const moonLight = new THREE.DirectionalLight(0xb4b2ff, 1.9);
-        moonLight.position.set(120, 220, -120);
-        moonLight.castShadow = true;
-        moonLight.shadow.camera.left = -450;
-        moonLight.shadow.camera.right = 450;
-        moonLight.shadow.camera.top = 450;
-        moonLight.shadow.camera.bottom = -450;
-        moonLight.shadow.camera.far = 1000;
-        moonLight.shadow.mapSize.width = 2048;
-        moonLight.shadow.mapSize.height = 2048;
-        scene.add(moonLight);
-        activeWorldObjects.push(moonLight);
+        collectedStarCount = 0;
+        smashedPropCount = 0;
+        starLocations.forEach(pos => {
+            const s = createCollectibleStar(pos[0], pos[1], pos[2]);
+            scene.add(s);
+            activeWorldObjects.push(s);
+            collectibleStars.push(s);
+        });
+        updateStarsUI();
+        updateSmashedUI();
 
-        // Reset player at city center
-        if (typeof player !== 'undefined' && player.reset) {
-            player.reset(0, 0.6, 0, 0);
-        }
+        player.reset(-4.5, 0, 4.0, -Math.PI * 0.3);
     }
 
     // ==========================================================================
@@ -3869,8 +3904,8 @@
         const grandstand2 = createGrandstand(-40, 238, 0);
         const grandstand3 = createGrandstand(0, 202, Math.PI);
         [grandstand1, grandstand2, grandstand3].forEach(gs => {
-            scene.add(gs);
-            activeWorldObjects.push(gs);
+            const [hx, hz] = orientedHalfExtents(9.5, 4.6, gs.rotation.y);
+            registerSolidBox(gs, hx, hz, 5.6);
         });
 
         // Roadside Cartoon Sponsor Billboards
@@ -3888,20 +3923,21 @@
         // Cadet Watchtowers Overlooking the High-Speed Curves
         const trackTower1 = createCadetWatchtower(-170, -30);
         const trackTower2 = createCadetWatchtower(160, -120);
-        [trackTower1, trackTower2].forEach(tw => {
-            scene.add(tw);
-            activeWorldObjects.push(tw);
-        });
+        [trackTower1, trackTower2].forEach(tw => registerSolidRound(tw, 2.9, 10.0));
 
         // Infield Rally Paddock: Tents & Fuel Drums
         const paddockTent1 = createCadetTent(-50, 0, Math.PI / 2);
         const paddockTent2 = createCadetTent(-50, 14, Math.PI / 2);
         const paddockBarrel1 = createExplosiveBarrel(-40, 0, 7, 0xe74c3c);
         const paddockBarrel2 = createExplosiveBarrel(-40, 0, 9, 0xf1c40f);
-        [paddockTent1, paddockTent2, paddockBarrel1, paddockBarrel2].forEach(item => {
+        [paddockBarrel1, paddockBarrel2].forEach(item => {
             scene.add(item);
             activeWorldObjects.push(item);
             if (item.isExplosive) destructibleProps.push(item);
+        });
+        [paddockTent1, paddockTent2].forEach(t => {
+            const [hx, hz] = orientedHalfExtents(2.6, 2.0, t.rotation.y);
+            registerSolidBox(t, hx, hz, 2.8);
         });
 
         // Destructible Tire Wall Crash Barriers on Outer Runoff Corners
@@ -4032,35 +4068,8 @@
         sound.init();
         bgm.start();
         buildForestRiverPlayground();
-        sysTraffic.init();
-        sysTaxi.init();
-        sysPolice.init();
     }
 
-    function startHighwayRushMode() {
-        currentMode = 'highway';
-        document.getElementById('main-menu').style.display = 'none';
-        document.getElementById('modal-overlay').style.display = 'none';
-        document.getElementById('game-hud').style.display = 'flex';
-        document.getElementById('hud-city-stars').style.display = 'none';
-        document.getElementById('hud-city-smashed').style.display = 'none';
-        document.getElementById('hud-race-pos').style.display = 'none';
-        document.getElementById('hud-race-lap').style.display = 'none';
-        document.getElementById('hud-race-time').style.display = 'none';
-        const hTimer = document.getElementById('hud-highway-timer');
-        const hGates = document.getElementById('hud-highway-gates');
-        if (hTimer) hTimer.style.display = 'flex';
-        if (hGates) hGates.style.display = 'flex';
-        document.getElementById('minimap-container').style.display = 'block';
-        minimapRadar.init();
-        comboManager.reset();
-        sound.init();
-        bgm.start();
-        buildForestRiverPlayground();
-        sysTraffic.init();
-        sysHighway.init();
-        player.reset(400, 0.6, 0, -Math.PI / 2);
-    }
 
     function startRaceMode() {
         currentMode = 'race';
@@ -5107,14 +5116,20 @@ function updatePlayer(dt) {
         player.x -= Math.sin(player.heading) * player.speed * k;
         player.z -= Math.cos(player.heading) * player.speed * k;
 
-        // River Splash Detection
-        if (Math.abs(player.x - (-18)) < 8 && Math.abs(player.speed) > 0.4 && player.isGrounded) {
+        // River Splash Detection (not while crossing on a bridge deck)
+        if (Math.abs(player.x - (-18)) < 8 && Math.abs(player.speed) > 0.4
+            && player.isGrounded && player.y < 0.3) {
             if (Math.random() < 0.15) sound.playSplash();
         }
 
         // Gravity & Ramp Jumps (Delta-Time Scaled)
         player.y += player.vy * k;
-        if (player.y > 0.05) {
+
+        // Drivable elevated surfaces (bridge decks). Falling onto a deck lands on it;
+        // rolling into a low deck edge steps up onto it (chunky 4x4 tires).
+        const groundY = surfaceHeightAt(player.x, player.z, player.y, player.isGrounded);
+
+        if (player.y > groundY + 0.05) {
             player.vy -= 0.02 * k;
             player.isGrounded = false;
         } else {
@@ -5128,7 +5143,7 @@ function updatePlayer(dt) {
                     }
                 }
             }
-            player.y = 0;
+            player.y = groundY;
             player.vy = 0;
             player.isGrounded = true;
         }
@@ -5157,20 +5172,63 @@ function updatePlayer(dt) {
                     player.isGrounded = false;
                     sound.playRampJump();
                 }
+            } else if (c.isBox) {
+                // Axis-aligned box prop (docks, grandstands, tents): push out along the
+                // shallowest axis and slide along the wall instead of reversing.
+                const boxTop = c.position.y + (c.boxHeight || 3.0);
+                if (player.y >= boxTop) return;   // clear it in mid-air
+
+                const hx = c.boxHalfX, hz = c.boxHalfZ;
+                const CAR_R = 1.35;
+                const dx = player.x - c.position.x;
+                const dz = player.z - c.position.z;
+                const penX = (hx + CAR_R) - Math.abs(dx);
+                const penZ = (hz + CAR_R) - Math.abs(dz);
+                if (penX <= 0 || penZ <= 0) return;  // not overlapping
+
+                let nx = 0, nz = 0;
+                if (penX < penZ) {
+                    nx = dx < 0 ? -1 : 1;
+                    player.x = c.position.x + nx * (hx + CAR_R);
+                } else {
+                    nz = dz < 0 ? -1 : 1;
+                    player.z = c.position.z + nz * (hz + CAR_R);
+                }
+
+                const bhx = -Math.sin(player.heading);
+                const bhz = -Math.cos(player.heading);
+                const bdot = bhx * nx + bhz * nz;
+                if (bdot < 0) {
+                    const sx = bhx - nx * bdot;
+                    const sz = bhz - nz * bdot;
+                    const slen = Math.hypot(sx, sz);
+                    if (slen > 0.12 && -bdot < 0.82) {
+                        player.heading = Math.atan2(-sx / slen, -sz / slen);
+                        player.speed *= 0.78;
+                    } else {
+                        player.speed = -player.speed * 0.30;
+                    }
+                    if (-bdot > 0.5 && Math.abs(player.speed) > 0.4) {
+                        sound.playThud();
+                        triggerPlayerImpact(0.7);
+                    }
+                }
             } else {
-                // Basalt Rock Column Solid Collision: Deflect rather than full reverse
+                // Solid prop collision: deflect rather than full reverse
                 const colHeight = c.columnHeight || 3.8;
+                const colR = c.colliderRadius || 2.3;
                 if (player.y < colHeight) {
                     const dx = player.x - c.position.x;
                     const dz = player.z - c.position.z;
-                    if (Math.abs(dx) > 4 || Math.abs(dz) > 4) return;
+                    const reach = colR + 1.8;
+                    if (Math.abs(dx) > reach || Math.abs(dz) > reach) return;
 
                     const dist = Math.hypot(dx, dz);
-                    if (dist < 2.3) {
+                    if (dist < colR) {
                         const nx = dx / (dist || 0.001);
                         const nz = dz / (dist || 0.001);
-                        player.x = c.position.x + nx * 2.32;
-                        player.z = c.position.z + nz * 2.32;
+                        player.x = c.position.x + nx * (colR + 0.02);
+                        player.z = c.position.z + nz * (colR + 0.02);
 
                         const hx = -Math.sin(player.heading);
                         const hz = -Math.cos(player.heading);
@@ -5675,10 +5733,6 @@ function updatePlayer(dt) {
         updateDebris();
         updateRaceLogic();
         updateCameraPosition(false);
-        sysTraffic.update(dt, player);
-        sysTaxi.update(dt, player);
-        sysPolice.update(dt);
-        if (currentMode === 'highway') sysHighway.update(dt, player);
         if (typeof sysRain !== 'undefined') sysRain.update(dt, player);
 
         if (currentMode) {
@@ -5746,7 +5800,6 @@ function updatePlayer(dt) {
     if (urlParams.get('mode') === 'city') {
         setTimeout(startCityMode, 100);
     } else if (urlParams.get('mode') === 'highway') {
-        setTimeout(startHighwayRushMode, 100);
     } else if (urlParams.get('mode') === 'race') {
         setTimeout(startRaceMode, 100);
     }
