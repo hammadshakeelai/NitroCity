@@ -21,6 +21,16 @@ No install, no dependencies, no external assets — it runs instantly on desktop
 
 ## 🎮 Game Modes
 
+### 🏙️ Toon City — open world
+
+Explore a bright **820 × 820** cartoon city with 36 blocks, 114 pastel buildings, shopfronts, leafy parks, a clocktower square and a waterfront promenade.
+
+- **42 moving cars** follow streets, slow for traffic and yield to your buggy.
+- **96 walking neighbors** stay on sidewalks and react to your horn.
+- Find **16 golden stars** across the city, with a street minimap and neighborhood names to guide you.
+- Shared instanced geometry, distance-based scenery and character detail, nearby collision lookup and bounded particles keep the larger map manageable on phones and computers.
+- Map resources are released on exit; LOW, MED and HIGH quality options control rendering cost.
+
 ### 🌲 Forest & River Playground — free roam
 
 Blast through a lush pine and autumn forest at dusk.
@@ -56,6 +66,7 @@ Off-road circuit racing against **6 AI rivals** (Blaze, Viper, Titan, Phantom, T
 | **Cycle Camera** | `C` | `📷` HUD |
 | **Reset / Unflip** | `R` | `🔄` HUD |
 | **Pause** | `P` | — |
+| **Fullscreen** | `F` | — |
 | **Next Radio Station** | `Q` | `📻` HUD |
 | **Horn** | `H` | `📢` HUD |
 | **Time of Day** | — | `🌙` HUD |
@@ -94,6 +105,7 @@ Jump straight into a mode with a URL parameter:
 ```text
 index.html?mode=city   ->  Forest & River Playground
 index.html?mode=race   ->  Dusk Circuit Race
+index.html?mode=tooncity -> Toon City
 ```
 
 ---
@@ -112,5 +124,11 @@ In Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 ---
 
 ## 📋 Development notes
+
+Toon City lives in `assets/toon-city-world.js` (static scenery) and `assets/toon-city-life.js` (traffic and pedestrians). The game still needs no build step.
+
+Browser regression checks are in `tests/toon-city-check.mjs`. With Playwright and Chromium installed, start the local server above and run `node tests/toon-city-check.mjs`. Set `PLAYWRIGHT_PACKAGE` to use an existing Playwright installation. Captures and the JSON report go to the ignored `scratch/toon-city-results` directory.
+
+`?test=1` enables manual simulation; `window.advanceTime(ms)` steps the game and `window.render_game_to_text()` reports gameplay and rendering state. Leave off `test=1` when playing normally.
 
 [`claude-review.md`](claude-review.md) is a playability review of the driving model — frame-rate dependence, collision response, foliage draw calls, AI behaviour and lap validation — with line references and the reasoning behind each fix. Most of it has since been implemented; **foliage instancing** is the main item still open.
