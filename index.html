@@ -788,6 +788,29 @@
             } catch (e) {}
         }
 
+        playThunder() {
+            if (!this.initialized || this.isMuted) return;
+            try {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(140, now);
+                filter.frequency.exponentialRampToValueAtTime(35, now + 1.2);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(75, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 1.2);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 1.2);
+            } catch (e) {}
+        }
+
         playNitro() {
             this.playTone(420, 0.4, 'triangle', 0.22);
         }
@@ -3174,10 +3197,63 @@
 
     let currentTodIdx = 0;
     const todPresets = [
-        { icon: "🌙", bg: 0x190e28, fog: 0x190e28, fogDensity: 0.0018, ambient: 0x563870, ambientInt: 1.8, dir: 0xb4b2ff, dirInt: 1.9 },
-        { icon: "🌇", bg: 0x4a1c40, fog: 0x4a1c40, fogDensity: 0.0016, ambient: 0xff7675, ambientInt: 2.0, dir: 0xfdcb6e, dirInt: 2.4 },
-        { icon: "☀️", bg: 0x74b9ff, fog: 0xa0cbf8, fogDensity: 0.0012, ambient: 0xffffff, ambientInt: 1.6, dir: 0xfff9e6, dirInt: 2.6 }
+        { name: "midnight", icon: "🌙", bg: 0x190e28, fog: 0x190e28, fogDensity: 0.0018, ambient: 0x563870, ambientInt: 1.8, dir: 0xb4b2ff, dirInt: 1.9, rain: false },
+        { name: "rainstorm", icon: "🌧️", bg: 0x0c1017, fog: 0x0c1017, fogDensity: 0.0032, ambient: 0x3d4b64, ambientInt: 1.4, dir: 0x4a69bd, dirInt: 1.1, rain: true },
+        { name: "sunset", icon: "🌇", bg: 0x4a1c40, fog: 0x4a1c40, fogDensity: 0.0016, ambient: 0xff7675, ambientInt: 2.0, dir: 0xfdcb6e, dirInt: 2.4, rain: false },
+        { name: "daylight", icon: "☀️", bg: 0x74b9ff, fog: 0xa0cbf8, fogDensity: 0.0012, ambient: 0xffffff, ambientInt: 1.6, dir: 0xfff9e6, dirInt: 2.6, rain: false }
     ];
+
+    class RainSystem {
+        constructor() {
+            this.enabled = false;
+            this.count = 1200;
+            const geom = new THREE.BufferGeometry();
+            const positions = new Float32Array(this.count * 6);
+            for (let i = 0; i < this.count; i++) {
+                const rx = (Math.random() - 0.5) * 140;
+                const ry = Math.random() * 45;
+                const rz = (Math.random() - 0.5) * 140;
+                positions[i * 6] = rx;
+                positions[i * 6 + 1] = ry;
+                positions[i * 6 + 2] = rz;
+                positions[i * 6 + 3] = rx - 0.15;
+                positions[i * 6 + 4] = ry - 1.4;
+                positions[i * 6 + 5] = rz;
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.LineBasicMaterial({ color: 0x81ecec, transparent: true, opacity: 0.45 });
+            this.mesh = new THREE.LineSegments(geom, mat);
+            this.mesh.visible = false;
+            scene.add(this.mesh);
+        }
+        setRain(enabled) {
+            this.enabled = enabled;
+            this.mesh.visible = enabled;
+        }
+        update(dt, player) {
+            if (!this.enabled || !player) return;
+            this.mesh.position.set(player.x, 0, player.z);
+            const pos = this.mesh.geometry.attributes.position.array;
+            const fallSpeed = 42 * dt;
+            for (let i = 0; i < this.count; i++) {
+                pos[i * 6 + 1] -= fallSpeed;
+                pos[i * 6 + 4] -= fallSpeed;
+                if (pos[i * 6 + 1] < 0) {
+                    const rx = (Math.random() - 0.5) * 140;
+                    const ry = 40 + Math.random() * 8;
+                    const rz = (Math.random() - 0.5) * 140;
+                    pos[i * 6] = rx;
+                    pos[i * 6 + 1] = ry;
+                    pos[i * 6 + 2] = rz;
+                    pos[i * 6 + 3] = rx - 0.15;
+                    pos[i * 6 + 4] = ry - 1.4;
+                    pos[i * 6 + 5] = rz;
+                }
+            }
+            this.mesh.geometry.attributes.position.needsUpdate = true;
+        }
+    }
+    const sysRain = new RainSystem();
 
     function cycleTimeOfDay() {
         currentTodIdx = (currentTodIdx + 1) % todPresets.length;
@@ -3196,7 +3272,13 @@
         const btn = document.getElementById('btn-hud-tod');
         if (btn) btn.innerText = preset.icon;
 
-        if (sound) sound.playTone(600, 0.1, 'sine', 0.1);
+        if (preset.rain) {
+            sysRain.setRain(true);
+            if (sound && sound.playThunder) sound.playThunder();
+        } else {
+            sysRain.setRain(false);
+            if (sound) sound.playTone(600, 0.1, 'sine', 0.1);
+        }
     }
 
     document.getElementById('btn-hud-tod').addEventListener('click', cycleTimeOfDay);
@@ -5597,6 +5679,7 @@ function updatePlayer(dt) {
         sysTaxi.update(dt, player);
         sysPolice.update(dt);
         if (currentMode === 'highway') sysHighway.update(dt, player);
+        if (typeof sysRain !== 'undefined') sysRain.update(dt, player);
 
         if (currentMode) {
             comboManager.update(dt, player, keys);
@@ -5669,6 +5752,13 @@ function updatePlayer(dt) {
     }
 
     animate();
+
+    // Register Service Worker for PWA Offline Caching
+    if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+    }
     </script>
 </body>
 </html>

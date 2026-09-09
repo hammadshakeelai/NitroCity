@@ -1,5 +1,5 @@
-// Service Worker for Toy Car Racer 3D (Offline Caching)
-const CACHE_NAME = 'toycarracer-v1';
+// Service Worker for NitroCity 3D (Offline Caching)
+const CACHE_NAME = 'nitrocity-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
