@@ -9,9 +9,9 @@
 //     falling back to cache when offline. Updates always land.
 //   - the pinned Three.js CDN build -> CACHE FIRST. The URL contains the
 //     version, so it is immutable and worth serving instantly.
-const CACHE_NAME = 'nitrocity-v4';
+const CACHE_NAME = 'nitrocity-v5-tooncity';
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-const PRECACHE = ['./', './index.html', './manifest.json', THREE_URL];
+const PRECACHE = ['./', './index.html', './manifest.json', './assets/toon-city-world.js', './assets/toon-city-life.js', THREE_URL];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -37,6 +37,8 @@ function isGameDocument(request, url) {
   if (url.origin !== self.location.origin) return false;
   return url.pathname.endsWith('/')
       || url.pathname.endsWith('.html')
+      || url.pathname.endsWith('/assets/toon-city-world.js')
+      || url.pathname.endsWith('/assets/toon-city-life.js')
       || url.pathname.endsWith('manifest.json');
 }
 
